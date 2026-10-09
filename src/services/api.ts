@@ -6,17 +6,18 @@ import {
   DriverVerification, 
   VehicleCategory, 
   NotificationItem, 
-  DriverVehicle 
+  DriverVehicle,
+  AvailableDriver
 } from '../types';
 import { IMG } from '../assets';
 
-// Mock seed database held in localStorage to guarantee 100% reliability in sandbox
 const STORAGE_KEYS = {
   USER: 'rayeh_jay_current_user',
   TRIPS: 'rayeh_jay_return_trips',
   CALLS: 'rayeh_jay_call_requests',
   VERIFICATION: 'rayeh_jay_driver_verification',
-  NOTIFICATIONS: 'rayeh_jay_notifications'
+  NOTIFICATIONS: 'rayeh_jay_notifications',
+  AVAILABLE: 'rayeh_jay_available_drivers'
 };
 
 const SEED_TRIPS: ReturnTrip[] = [
@@ -134,7 +135,6 @@ const SEED_TRIPS: ReturnTrip[] = [
 ];
 
 export const api = {
-  // Fetch active return trips
   async getReturnTrips(): Promise<ReturnTrip[]> {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.TRIPS);
@@ -146,7 +146,6 @@ export const api = {
     return SEED_TRIPS;
   },
 
-  // Save new return trip (by driver)
   async createReturnTrip(trip: Omit<ReturnTrip, 'id' | 'status'>): Promise<ReturnTrip> {
     const trips = await this.getReturnTrips();
     const newTrip: ReturnTrip = {
@@ -159,13 +158,11 @@ export const api = {
     return newTrip;
   },
 
-  // Update trip delay or status (Driver delay field)
   async updateTripDelay(tripId: string, delayReason: string, delayMinutes: number): Promise<ReturnTrip | null> {
     const trips = await this.getReturnTrips();
     const index = trips.findIndex(t => t.id === tripId);
     if (index === -1) return null;
 
-    // Recalculate estimated arrival time
     const trip = trips[index];
     const [hh, mm] = trip.estimatedArrivalTime.split(':').map(Number);
     const date = new Date();
@@ -182,7 +179,6 @@ export const api = {
     return trip;
   },
 
-  // Mark trip arrived -> Driver enters REST MODE ("أنت في وقت راحتك، استفد منه")
   async finishTripAndEnterRest(tripId: string): Promise<ReturnTrip | null> {
     const trips = await this.getReturnTrips();
     const index = trips.findIndex(t => t.id === tripId);
@@ -190,7 +186,7 @@ export const api = {
 
     const trip = trips[index];
     trip.status = 'RESTING';
-    const restUntil = new Date(Date.now() + 4 * 60 * 60 * 1000); // 4 hours rest
+    const restUntil = new Date(Date.now() + 4 * 60 * 60 * 1000);
     trip.restUntil = `${String(restUntil.getHours()).padStart(2, '0')}:${String(restUntil.getMinutes()).padStart(2, '0')}`;
 
     trips[index] = trip;
@@ -198,7 +194,6 @@ export const api = {
     return trip;
   },
 
-  // Calls & Direct Connection
   async getCalls(): Promise<CallRequest[]> {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.CALLS);
@@ -231,7 +226,6 @@ export const api = {
     return calls[index];
   },
 
-  // Driver verification
   async getDriverVerification(driverId: string): Promise<DriverVerification> {
     try {
       const stored = localStorage.getItem(`${STORAGE_KEYS.VERIFICATION}_${driverId}`);
@@ -259,7 +253,52 @@ export const api = {
     return verif;
   },
 
-  // Smart suggestion: Recommend vehicle category based on cargo weight & description
+  // ============ AVAILABLE DRIVERS (الميزة الجديدة) ============
+
+  async getAvailableDrivers(): Promise<AvailableDriver[]> {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.AVAILABLE);
+      if (stored) return JSON.parse(stored);
+    } catch (_) {}
+    return [];
+  },
+
+  async setDriverAvailable(data: Omit<AvailableDriver, 'id' | 'createdAt' | 'status'>): Promise<AvailableDriver> {
+    const drivers = await this.getAvailableDrivers();
+    // إزالة أي إتاحة سابقة لنفس السائق
+    const filtered = drivers.filter(d => d.driverId !== data.driverId);
+    const newAvailable: AvailableDriver = {
+      ...data,
+      id: `avail_${Date.now()}`,
+      status: 'EMPTY',
+      createdAt: new Date().toISOString()
+    };
+    const updated = [newAvailable, ...filtered];
+    localStorage.setItem(STORAGE_KEYS.AVAILABLE, JSON.stringify(updated));
+    return newAvailable;
+  },
+
+  async setDriverUnavailable(driverId: string): Promise<void> {
+    const drivers = await this.getAvailableDrivers();
+    const filtered = drivers.filter(d => d.driverId !== driverId);
+    localStorage.setItem(STORAGE_KEYS.AVAILABLE, JSON.stringify(filtered));
+  },
+
+  // البحث: زبون يريد من origin إلى destination
+  async searchAvailableDrivers(origin: string, destination: string): Promise<AvailableDriver[]> {
+    const drivers = await this.getAvailableDrivers();
+    return drivers.filter(d => {
+      if (d.status !== 'EMPTY') return false;
+
+      const route = [d.from, ...d.via, d.to];
+      const originIdx = route.indexOf(origin);
+      const destIdx = route.indexOf(destination);
+
+      if (originIdx === -1 || destIdx === -1) return false;
+      return originIdx < destIdx;
+    });
+  },
+
   suggestVehicleCategory(weightKg: number, description: string): {
     category: VehicleCategory;
     reason: string;
@@ -267,7 +306,6 @@ export const api = {
   } {
     const lower = description.toLowerCase();
     
-    // Check heavy machinery / equipment
     if (
       lower.includes('جرافة') || 
       lower.includes('حفارة') || 
@@ -284,7 +322,6 @@ export const api = {
       };
     }
 
-    // Passengers
     if (
       lower.includes('ركاب') || 
       lower.includes('أشخاص') || 
@@ -306,7 +343,6 @@ export const api = {
       };
     }
 
-    // Heavy weight checks
     if (weightKg > 19000 || lower.includes('حاوية') || lower.includes('كونتنر') || lower.includes('حبوب')) {
       return {
         category: 'E_TRAILER',
@@ -331,7 +367,6 @@ export const api = {
       };
     }
 
-    // Light cargo default
     return {
       category: 'B_LIGHT',
       reason: 'الوزن أقل من 3.5 طن (بضائع تجارية، أثاث خفيف، طرود، أجهزة) وتكفيها شاحنة نفعية صغيرة صنف B (هاربيل / ماستر).',
