@@ -3,7 +3,6 @@ import {
   AlertTriangle, 
   ShieldCheck, 
   Globe, 
-  User as UserIcon, 
   CheckCircle2, 
   X, 
   Lock, 
@@ -35,18 +34,15 @@ export const RayehTopBar: React.FC<RayehTopBarProps> = ({
     <>
       <header className="w-full bg-[#12151c]/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-2.5 flex items-center justify-between sticky top-0 z-30 shadow-md">
         
-        {/* Left Side: Glowing Hazard / Safety Triangle (Directly inspired by the photo) */}
         <button
           onClick={() => setShowSecurityModal(true)}
           className="relative group p-2 rounded-2xl bg-gradient-to-b from-[#221013] via-[#1a0a0c] to-[#0d0405] border border-red-500/60 shadow-[0_0_15px_rgba(239,68,68,0.35)] active:scale-95 transition-all flex items-center justify-center cursor-pointer"
           title={lang === 'ar' ? 'ميثاق الثقة والأمان' : 'Garantie de Sécurité & Confiance'}
         >
-          {/* Subtle outer red glow pulse */}
           <span className="absolute -inset-0.5 rounded-2xl bg-red-600/30 blur-sm animate-pulse -z-10" />
           <AlertTriangle className="w-5 h-5 text-red-500 fill-red-500/40 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
         </button>
 
-        {/* Center: Branding & Role Toggle */}
         <div className="flex flex-col items-center">
           <div className="flex items-center gap-1.5">
             <span className="text-base font-black tracking-tight text-white flex items-center gap-1">
@@ -55,7 +51,6 @@ export const RayehTopBar: React.FC<RayehTopBarProps> = ({
             <span className="text-[10px] text-slate-400 font-mono tracking-wider">Rayeh Jay</span>
           </div>
 
-          {/* Role Switcher Pill */}
           <div className="mt-1 flex items-center bg-slate-900/90 p-0.5 rounded-full border border-slate-800 text-[10px] font-bold">
             <button
               onClick={() => onSwitchRole('client')}
@@ -82,9 +77,7 @@ export const RayehTopBar: React.FC<RayehTopBarProps> = ({
           </div>
         </div>
 
-        {/* Right Side: Language Switcher & User Avatar (Matching reference image) */}
         <div className="flex items-center gap-2">
-          {/* Lang */}
           <button
             onClick={onToggleLang}
             className="px-2 py-1 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-[11px] font-bold text-emerald-400 border border-slate-700/80 flex items-center gap-0.5 transition-colors"
@@ -94,7 +87,6 @@ export const RayehTopBar: React.FC<RayehTopBarProps> = ({
             <span>{lang === 'ar' ? 'FR' : 'عربي'}</span>
           </button>
 
-          {/* User Avatar with Green Active Ring */}
           <button
             onClick={onOpenProfile}
             className="relative w-9 h-9 rounded-full ring-2 ring-emerald-500/80 hover:ring-emerald-400 p-0.5 bg-slate-800 overflow-hidden active:scale-95 transition-transform"
@@ -106,13 +98,11 @@ export const RayehTopBar: React.FC<RayehTopBarProps> = ({
               className="w-full h-full object-cover rounded-full"
               referrerPolicy="no-referrer"
             />
-            {/* Green Online Dot */}
             <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-1 ring-slate-950" />
           </button>
         </div>
       </header>
 
-      {/* Safety & Trust Modal (Triggered by glowing hazard triangle) */}
       {showSecurityModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-sm rounded-3xl bg-[#161a23] border border-slate-800 p-5 shadow-2xl text-right" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
