@@ -16,6 +16,10 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm install --no-audit --no-fund @capacitor/core@7 @capacitor/cli@7 @capacitor/android@7
       - run: npx vite build --base=./
+      - name: Verify base path
+        run: |
+          grep -n "assets/" dist/index.html
+          if grep -q "/R-jay-/" dist/index.html; then echo "BASE PATH WRONG"; exit 1; fi
       - name: Capacitor config
         run: |
           cat > capacitor.config.json <<'EOF'
