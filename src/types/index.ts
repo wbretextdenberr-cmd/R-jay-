@@ -28,17 +28,17 @@ export interface User {
 }
 
 export interface DriverVerification {
-  ninNumber: string; // رقم التعريف الوطني
-  driverLicenseNumber: string; // رقم رخصة السياقة
+  ninNumber: string;
+  driverLicenseNumber: string;
   licenseIssueDate: string;
-  transportPermitNumber: string; // رقم رخصة النقل
+  transportPermitNumber: string;
   idCardPhoto: string;
   licensePhoto: string;
   transportPermitPhoto: string;
   vehiclePhoto: string;
   trailerPhoto?: string;
   status: 'VERIFIED' | 'UNDER_REVIEW' | 'REJECTED';
-  reliabilityScore: number; // e.g. 98%
+  reliabilityScore: number;
   completedTrips: number;
 }
 
@@ -47,7 +47,7 @@ export interface DriverVehicle {
   driverId: string;
   category: VehicleCategory;
   modelName: string;
-  registrationNumber: string; // e.g. 01452-119-16
+  registrationNumber: string;
   maxPayloadKg: number;
   hasTrailer: boolean;
   trailerType?: string;
@@ -71,15 +71,15 @@ export interface ReturnTrip {
   fromCommune: string;
   toWilaya: string;
   toCommune: string;
-  routeUsed: string; // e.g. "الطريق السيار شرق-غرب (A1)"
+  routeUsed: string;
   departureTime: string;
-  estimatedArrivalTime: string; // HH:mm
-  acceptAlongRoute: boolean; // "أنقل لأي أحد على طول طريقي / في كل اتجاه"
+  estimatedArrivalTime: string;
+  acceptAlongRoute: boolean;
   delayReason?: string;
   delayMinutes: number;
   fixedCommissionDzd: number;
   status: TripStatus;
-  restUntil?: string; // وقت الراحة بعد الوصول
+  restUntil?: string;
 }
 
 export interface CargoSearchQuery {
@@ -92,12 +92,12 @@ export interface CargoSearchQuery {
 }
 
 export type CallRequestStatus = 
-  | 'PENDING_DRIVER'       // في انتظار تأكيد الناقل
-  | 'ACCEPTED_WAITING_CALL'// السائق قبل -> في انتظار اتصال الزبون
-  | 'IN_CALL'              // الزبون يتصل حالياً
-  | 'AGREED'               // تم الاتفاق هاتفياً
-  | 'REJECTED'             // رفض الناقل
-  | 'REST_MODE';           // السائق دخل في وقت الراحة
+  | 'PENDING_DRIVER'
+  | 'ACCEPTED_WAITING_CALL'
+  | 'IN_CALL'
+  | 'AGREED'
+  | 'REJECTED'
+  | 'REST_MODE';
 
 export interface CallRequest {
   id: string;
