@@ -42,7 +42,6 @@ export const RayehProfileScreen: React.FC<RayehProfileScreenProps> = ({
   return (
     <div className="w-full flex-1 flex flex-col p-4 pb-20 overflow-y-auto no-scrollbar space-y-4" dir={isAr ? 'rtl' : 'ltr'}>
       
-      {/* 1. Profile Header Card */}
       <div className="p-4 rounded-3xl bg-gradient-to-b from-[#181d28] to-[#11141c] border border-slate-800 shadow-xl flex items-center gap-3.5">
         <div className="relative">
           <img
@@ -71,7 +70,6 @@ export const RayehProfileScreen: React.FC<RayehProfileScreenProps> = ({
         </div>
       </div>
 
-      {/* 2. Security Notice Box (Mandatory text) */}
       <div className="p-3.5 rounded-2xl bg-slate-900 border border-emerald-500/40 flex items-center gap-2.5">
         <Lock className="w-5 h-5 text-emerald-400 shrink-0" />
         <p className="text-xs font-bold text-emerald-300 leading-snug">
@@ -81,7 +79,6 @@ export const RayehProfileScreen: React.FC<RayehProfileScreenProps> = ({
         </p>
       </div>
 
-      {/* 3. Driver Mandatory Verification Section */}
       <div className="p-4 rounded-3xl bg-[#141822] border border-slate-800 shadow-xl space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -126,7 +123,6 @@ export const RayehProfileScreen: React.FC<RayehProfileScreenProps> = ({
         </button>
       </div>
 
-      {/* 4. Client Premium 5 Benefits Showcase */}
       <div className="p-4 rounded-3xl bg-[#141822] border border-amber-500/40 shadow-xl space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -154,7 +150,6 @@ export const RayehProfileScreen: React.FC<RayehProfileScreenProps> = ({
         </button>
       </div>
 
-      {/* 5. App Settings & Identity */}
       <div className="p-4 rounded-3xl bg-[#141822] border border-slate-800 shadow-xl space-y-2 text-xs">
         <div className="flex items-center justify-between py-1.5 border-b border-slate-800">
           <span className="text-slate-300">{isAr ? 'لغة التطبيق' : 'Langue'}</span>
