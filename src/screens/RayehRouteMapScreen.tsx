@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { Compass, Truck, Phone, Navigation, ShieldCheck } from 'lucide-react';
+import { Compass } from 'lucide-react';
 import { ReturnTrip, Language } from '../types';
-import { WILAYAS, VEHICLE_CATEGORIES_INFO } from '../locales/translations';
+import { WILAYAS } from '../locales/translations';
 
 interface RayehRouteMapScreenProps {
   returnTrips: ReturnTrip[];
@@ -23,7 +23,6 @@ export const RayehRouteMapScreen: React.FC<RayehRouteMapScreenProps> = ({
     let cancelled = false;
 
     (async () => {
-      // ✅ استيراد ديناميكي — لا يوقف تحميل التطبيق
       const L = (await import('leaflet')).default;
       await import('leaflet/dist/leaflet.css');
 
@@ -51,13 +50,11 @@ export const RayehRouteMapScreen: React.FC<RayehRouteMapScreenProps> = ({
     };
   }, []);
 
-  // ✅ تحديث العلامات عندما تتغير الرحلات
   useEffect(() => {
     const L = leafletRef.current;
     const map = mapInstanceRef.current;
     if (!L || !map) return;
 
-    // مسح الطبقات السابقة
     map.eachLayer((layer: any) => {
       if (layer instanceof L.Marker || layer instanceof L.Circle || layer instanceof L.Polyline) {
         map.removeLayer(layer);
@@ -77,7 +74,7 @@ export const RayehRouteMapScreen: React.FC<RayehRouteMapScreenProps> = ({
       dashArray: '6, 8'
     }).addTo(map);
 
-    returnTrips.forEach((trip) => {
+    returnTrips.forEach((trip: ReturnTrip) => {
       if (trip.status === 'RESTING') return;
 
       const destWilaya = WILAYAS.find(w => trip.toWilaya.includes(w.nameAr) || trip.toWilaya.includes(w.nameFr)) || WILAYAS[0];
