@@ -1,0 +1,14 @@
+{
+  "name": "رايح جاي (Rayeh Jay)",
+  "short_name": "رايح جاي",
+  "description": "ربط أصحاب الحمولات بالناقلين العائدين في الجزائر",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#10b981",
+  "icons": [
+    { "src": "app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+@layer base {
+  [dir="rtl"] {
+    font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+  }
+  [dir="ltr"] {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  
+  html, body {
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Hide scrollbar for clean mobile horizontal pills */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Leaflet Dark Customizations */
+.leaflet-container {
+  background-color: #090d16 !important;
+  font-family: inherit !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #1e293b !important;
+  color: #f8fafc !important;
+  border-radius: 1rem !important;
+  border: 1px solid rgba(245, 158, 11, 0.4) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5) !important;
+}
+
+.leaflet-popup-tip {
+  background: #1e293b !important;
+}
+
+/* Smooth Animations */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Subtle Marker Animations */
+@keyframes driverRadar {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@keyframes subtleFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.marker-radar-ring {
+  animation: driverRadar 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+.marker-radar-ring-delayed {
+  animation: driverRadar 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  animation-delay: 1.2s;
+}
+
+.marker-subtle-float {
+  animation: subtleFloat 3s ease-in-out infinite;
+}
+
