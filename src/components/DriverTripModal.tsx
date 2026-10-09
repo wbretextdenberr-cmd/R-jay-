@@ -36,7 +36,6 @@ export const DriverTripModal: React.FC<DriverTripModalProps> = ({
 }) => {
   const isAr = lang === 'ar';
 
-  // New Trip State
   const [fromWilaya, setFromWilaya] = useState(WILAYAS[0].nameAr);
   const [toWilaya, setToWilaya] = useState(WILAYAS[1].nameAr);
   const [routeUsed, setRouteUsed] = useState(ALGERIAN_HIGHWAYS[0]);
@@ -46,7 +45,6 @@ export const DriverTripModal: React.FC<DriverTripModalProps> = ({
   const [vehicleCategory, setVehicleCategory] = useState<VehicleCategory>('C1');
   const [vehicleName, setVehicleName] = useState('Renault Trucks D16 4x2');
 
-  // Delay State for active trip
   const [delayReason, setDelayReason] = useState(activeTrip?.delayReason || '');
   const [delayMinutes, setDelayMinutes] = useState(activeTrip?.delayMinutes || 0);
 
@@ -84,7 +82,6 @@ export const DriverTripModal: React.FC<DriverTripModalProps> = ({
         className="w-full max-w-md rounded-3xl bg-[#141822] border border-slate-800 p-5 shadow-2xl flex flex-col max-h-[92vh] overflow-y-auto no-scrollbar"
         dir={isAr ? 'rtl' : 'ltr'}
       >
-        {/* Top Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-emerald-950/80 border border-emerald-500/60 flex items-center justify-center text-emerald-400">
@@ -109,7 +106,6 @@ export const DriverTripModal: React.FC<DriverTripModalProps> = ({
           </button>
         </div>
 
-        {/* If driver already has an active trip: Delay or Finish management */}
         {activeTrip ? (
           <div className="py-4 space-y-4">
             <div className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
@@ -130,7 +126,6 @@ export const DriverTripModal: React.FC<DriverTripModalProps> = ({
               </div>
             </div>
 
-            {/* Delay Field Section */}
             <form onSubmit={handleDelaySubmit} className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
               <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
                 <AlertTriangle className="w-4 h-4" />
@@ -179,7 +174,6 @@ export const DriverTripModal: React.FC<DriverTripModalProps> = ({
               </button>
             </form>
 
-            {/* End of Trip & Rest Mode Trigger */}
             <div className="pt-2 border-t border-slate-800">
               <button
                 type="button"
@@ -200,9 +194,7 @@ export const DriverTripModal: React.FC<DriverTripModalProps> = ({
             </div>
           </div>
         ) : (
-          /* Form to Register a New Return Trip */
           <form onSubmit={handleCreateSubmit} className="py-4 space-y-3.5">
-            {/* From -> To Wilayas */}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-[11px] font-bold text-slate-300 mb-1">
@@ -239,7 +231,6 @@ export const DriverTripModal: React.FC<DriverTripModalProps> = ({
               </div>
             </div>
 
-            {/* Road Taken */}
             <div>
               <label className="block text-[11px] font-bold text-slate-300 mb-1">
                 {isAr ? 'الطريق المسلوك:' : 'Itinéraire emprunté :'}
@@ -255,7 +246,6 @@ export const DriverTripModal: React.FC<DriverTripModalProps> = ({
               </select>
             </div>
 
-            {/* Vehicle Category & Name */}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-[11px] font-bold text-slate-300 mb-1">
@@ -287,7 +277,6 @@ export const DriverTripModal: React.FC<DriverTripModalProps> = ({
               </div>
             </div>
 
-            {/* Times */}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-[11px] font-bold text-slate-300 mb-1">
@@ -314,7 +303,6 @@ export const DriverTripModal: React.FC<DriverTripModalProps> = ({
               </div>
             </div>
 
-            {/* Along Route Checkbox ("أنقل لأي أحد على طول طريقي / في كل اتجاه") */}
             <label className="flex items-start gap-2.5 p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 cursor-pointer">
               <input
                 type="checkbox"
