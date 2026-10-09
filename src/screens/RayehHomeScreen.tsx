@@ -14,9 +14,10 @@ import {
   Coffee,
   AlertCircle,
   PlusCircle,
-  Crown
+  Crown,
+  Zap
 } from 'lucide-react';
-import { ReturnTrip, VehicleCategory, User, UserRole, Language } from '../types';
+import { ReturnTrip, VehicleCategory, User, UserRole, Language, AvailableDriver } from '../types';
 import { AutomotiveGridButtons } from '../components/AutomotiveGridButtons';
 import { WILAYAS, VEHICLE_CATEGORIES_INFO } from '../locales/translations';
 
@@ -25,9 +26,11 @@ interface RayehHomeScreenProps {
   currentRole: UserRole;
   lang: Language;
   returnTrips: ReturnTrip[];
+  availableDrivers: AvailableDriver[];
   activeDriverTrip: ReturnTrip | null;
   onOpenSmartSuggest: () => void;
   onOpenDriverTripModal: () => void;
+  onOpenAvailableModal: () => void;
   onOpenCallModal: (trip: ReturnTrip) => void;
   onOpenPremiumModal: () => void;
   onOpenVerificationModal: () => void;
@@ -38,32 +41,43 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
   currentRole,
   lang,
   returnTrips,
+  availableDrivers,
   activeDriverTrip,
   onOpenSmartSuggest,
   onOpenDriverTripModal,
+  onOpenAvailableModal,
   onOpenCallModal,
   onOpenPremiumModal,
   onOpenVerificationModal
 }) => {
   const isAr = lang === 'ar';
 
-  // Search Filters
   const [selectedCategory, setSelectedCategory] = useState<VehicleCategory | 'ALL'>('ALL');
-  const [pickupWilaya, setPickupWilaya] = useState<string>('الجزائر العاصمة');
-  const [destinationWilaya, setDestinationWilaya] = useState<string>('وهران');
+  const [pickupWilaya, setPickupWilaya] = useState<string>('وهران');
+  const [destinationWilaya, setDestinationWilaya] = useState<string>('الجزائر العاصمة');
   const [filterAlongRoute, setFilterAlongRoute] = useState<boolean>(true);
 
-  // Candidate Drivers Filtering (30km radius / route match / vehicle type match)
+  // ============ السائقون المتاحون (الميزة الجديدة) ============
+  const matchedAvailableDrivers = availableDrivers.filter((d) => {
+    if (d.status !== 'EMPTY') return false;
+
+    // المسار الكامل: من + عبر + إلى
+    const route = [d.from, ...d.via, d.to];
+    const originIdx = route.indexOf(pickupWilaya);
+    const destIdx = route.indexOf(destinationWilaya);
+
+    if (originIdx === -1 || destIdx === -1) return false;
+    return originIdx < destIdx;
+  });
+
+  // ============ السائقون المرشحون (المنطق القديم) ============
   const candidateTrips = returnTrips.filter((trip) => {
-    // If resting, driver is completely hidden from client list! (Specification requirement)
     if (trip.status === 'RESTING') return false;
 
-    // Filter by vehicle category if selected
     if (selectedCategory !== 'ALL' && trip.vehicleCategory !== selectedCategory) {
       return false;
     }
 
-    // Match destination or departure or along route
     if (filterAlongRoute && trip.acceptAlongRoute) {
       return true;
     }
@@ -75,10 +89,12 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
     return matchesDestination;
   });
 
+  const totalResults = matchedAvailableDrivers.length + candidateTrips.length;
+
   return (
     <div className="w-full flex-1 flex flex-col pb-20 overflow-y-auto no-scrollbar">
       
-      {/* 1. REST MODE BANNER (When driver finished trip) */}
+      {/* 1. REST MODE BANNER */}
       {currentRole === 'driver' && activeDriverTrip?.status === 'RESTING' && (
         <div className="mx-4 mt-3 p-4 rounded-2xl bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 border border-indigo-500/40 text-center space-y-2 animate-fade-in shadow-xl">
           <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
@@ -140,7 +156,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         </div>
       )}
 
-      {/* 3. SIGNATURE AUTOMOTIVE 2x2 TACTILE GRID BUTTONS (Inspired by screenshot) */}
+      {/* 3. AUTOMOTIVE 2x2 GRID */}
       <div className="mt-1">
         <AutomotiveGridButtons
           selectedCategory={selectedCategory}
@@ -149,9 +165,8 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         />
       </div>
 
-      {/* 4. ACTIONS BAR: Smart Suggestion & Driver Route Declaration */}
+      {/* 4. ACTIONS BAR */}
       <div className="px-4 py-1.5 flex gap-2">
-        {/* Smart Suggestion Button ("اقتراح") */}
         <button
           onClick={onOpenSmartSuggest}
           className="flex-1 py-2.5 px-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-98 transition-all cursor-pointer"
@@ -160,7 +175,6 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
           <span>{isAr ? 'زر اقتراح العربة المناسبة' : 'Suggestion intelligente'}</span>
         </button>
 
-        {/* Driver Register Trip Button (Quick access) */}
         {currentRole === 'driver' ? (
           <button
             onClick={onOpenDriverTripModal}
@@ -180,7 +194,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         )}
       </div>
 
-      {/* 5. CLIENT SEARCH CARD (Wilayas & 30km Radius matching) */}
+      {/* 5. CLIENT SEARCH CARD */}
       <div className="mx-4 mt-2 p-3.5 rounded-2xl bg-[#141822] border border-slate-800 shadow-xl space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -197,7 +211,6 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
           )}
         </div>
 
-        {/* Pickup & Destination Wilayas Selectors */}
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="block text-[10px] font-bold text-slate-400 mb-1">
@@ -234,7 +247,6 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
           </div>
         </div>
 
-        {/* 30 km radius & along route checkbox */}
         <label className="flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer pt-0.5">
           <input
             type="checkbox"
@@ -246,7 +258,91 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         </label>
       </div>
 
-      {/* 6. CANDIDATE DRIVERS LIST (What client sees according to plan) */}
+      {/* 6. AVAILABLE DRIVERS (الميزة الجديدة - زر متاح فارغ) */}
+      {matchedAvailableDrivers.length > 0 && (
+        <div className="mx-4 mt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-amber-400" />
+              <h3 className="font-bold text-xs text-white">
+                {isAr ? 'سائقون متاحون الآن (فارغ)' : 'Chauffeurs disponibles (à vide)'}
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full font-bold">
+              {matchedAvailableDrivers.length} {isAr ? 'متاح' : 'dispo'}
+            </span>
+          </div>
+
+          {matchedAvailableDrivers.map((d) => (
+            <div 
+              key={d.id}
+              className="p-3.5 rounded-2xl bg-gradient-to-b from-amber-950/30 to-[#11141c] border border-amber-500/40 hover:border-amber-400/60 shadow-md space-y-3 transition-all"
+            >
+              <div className="flex items-start gap-3">
+                <div className="relative">
+                  <img
+                    src={d.driverAvatar}
+                    alt={d.driverName}
+                    className="w-12 h-12 rounded-xl object-cover ring-2 ring-amber-500/60"
+                    referrerPolicy="no-referrer"
+                  />
+                  <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-500 ring-2 ring-slate-950 flex items-center justify-center">
+                    <Zap className="w-2.5 h-2.5 text-slate-950 stroke-[3]" />
+                  </span>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-xs text-white truncate">
+                      {d.driverName}
+                    </h4>
+                    <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                      {d.reliabilityScore}%
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-amber-300 font-semibold mt-0.5">
+                    🟢 {isAr ? 'فارغ الآن' : 'À vide'}
+                  </p>
+                  <div className="flex items-center gap-1 text-[10px] text-slate-400 mt-1">
+                    <Clock className="w-3 h-3" />
+                    <span className="font-mono">{d.departTime}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] space-y-1">
+                <div className="flex items-center justify-between text-white font-semibold">
+                  <span className="truncate">{d.from}</span>
+                  <span className="text-amber-400 font-mono px-1">➜</span>
+                  <span className="truncate">{d.to}</span>
+                </div>
+                {d.via.length > 0 && (
+                  <p className="text-[10px] text-slate-400 truncate">
+                    {isAr ? 'عبر: ' : 'Via: '}{d.via.join(' ← ')}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
+                <div className="text-[10px] text-slate-400">
+                  <span className="block">{isAr ? 'العمولة الثابتة:' : 'Commission :'}</span>
+                  <span className="font-mono font-bold text-amber-400">{d.fixedCommissionDzd} دج</span>
+                </div>
+
+                <a
+                  href={`tel:${d.driverPhone}`}
+                  className="py-2 px-5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>{isAr ? 'اتصال' : 'Appeler'}</span>
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 7. CANDIDATE DRIVERS (المنطق القديم) */}
       <div className="mx-4 mt-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
@@ -260,7 +356,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
           </span>
         </div>
 
-        {candidateTrips.length === 0 ? (
+        {totalResults === 0 ? (
           <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
             <Truck className="w-8 h-8 text-slate-600 mx-auto" />
             <p className="text-xs text-slate-400">
@@ -287,7 +383,6 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
                 key={trip.id}
                 className="p-3.5 rounded-2xl bg-gradient-to-b from-[#181d28] to-[#11141c] border border-slate-800 hover:border-emerald-500/50 shadow-md space-y-3 transition-all"
               >
-                {/* Header: Driver Name, Vehicle Category, ETA */}
                 <div className="flex items-start gap-3">
                   <div className="relative">
                     <img
@@ -328,7 +423,6 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
                   </div>
                 </div>
 
-                {/* Route Information */}
                 <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] space-y-1">
                   <div className="flex items-center justify-between text-white font-semibold">
                     <span className="truncate">{trip.fromWilaya}</span>
@@ -340,7 +434,6 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
                   </p>
                 </div>
 
-                {/* Delay Notice if any */}
                 {trip.delayMinutes > 0 && (
                   <div className="text-[10px] text-amber-300 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/30 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3 text-amber-400 shrink-0" />
@@ -348,7 +441,6 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
                   </div>
                 )}
 
-                {/* Call Button (آلية الاتصال المحددة بالخطة) */}
                 <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
                   <div className="text-[10px] text-slate-400">
                     <span className="block">{isAr ? 'العمولة الثابتة (يدفعها السائق):' : 'Commission forfaitaire :'}</span>
