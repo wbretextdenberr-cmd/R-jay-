@@ -30,7 +30,6 @@ export const RayehCallsScreen: React.FC<RayehCallsScreenProps> = ({
 
   return (
     <div className="w-full flex-1 flex flex-col p-4 pb-20 overflow-y-auto no-scrollbar space-y-4" dir={isAr ? 'rtl' : 'ltr'}>
-      {/* Top Header */}
       <div className="flex items-center justify-between pb-2 border-b border-slate-800">
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-xl bg-emerald-950/80 border border-emerald-500/60 flex items-center justify-center text-emerald-400">
@@ -49,7 +48,6 @@ export const RayehCallsScreen: React.FC<RayehCallsScreenProps> = ({
         </div>
       </div>
 
-      {/* Commission Reminder Rule */}
       <div className="p-3 rounded-2xl bg-slate-900 border border-emerald-500/30 flex items-center gap-2.5 text-xs text-slate-300">
         <Coins className="w-5 h-5 text-emerald-400 shrink-0" />
         <p className="leading-snug">
@@ -59,7 +57,6 @@ export const RayehCallsScreen: React.FC<RayehCallsScreenProps> = ({
         </p>
       </div>
 
-      {/* Calls List */}
       <div className="space-y-3">
         {calls.length === 0 ? (
           <div className="p-8 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
@@ -80,7 +77,6 @@ export const RayehCallsScreen: React.FC<RayehCallsScreenProps> = ({
                 key={call.id}
                 className="p-4 rounded-2xl bg-[#141822] border border-slate-800 shadow-lg space-y-3"
               >
-                {/* Header Status */}
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-mono text-slate-400">
                     {new Date(call.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -96,7 +92,6 @@ export const RayehCallsScreen: React.FC<RayehCallsScreenProps> = ({
                   </span>
                 </div>
 
-                {/* Cargo & Client Info */}
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-emerald-400 shrink-0">
                     <Package className="w-5 h-5" />
@@ -116,7 +111,6 @@ export const RayehCallsScreen: React.FC<RayehCallsScreenProps> = ({
                   </div>
                 </div>
 
-                {/* If Driver Mode & Pending: Driver can click "اقبل" */}
                 {currentRole === 'driver' && isPending && (
                   <div className="pt-2 border-t border-slate-800 flex gap-2">
                     <button
@@ -129,7 +123,6 @@ export const RayehCallsScreen: React.FC<RayehCallsScreenProps> = ({
                   </div>
                 )}
 
-                {/* If Driver Mode & Accepted: Driver sees "في انتظار اتصال الزبون" */}
                 {currentRole === 'driver' && isAccepted && (
                   <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-center space-y-1">
                     <span className="text-xs font-bold text-emerald-300 block">
@@ -143,7 +136,6 @@ export const RayehCallsScreen: React.FC<RayehCallsScreenProps> = ({
                   </div>
                 )}
 
-                {/* If Client Mode & Accepted: Client sees revealed phone number */}
                 {currentRole === 'client' && isAccepted && (
                   <div className="p-3 rounded-xl bg-slate-950 border border-emerald-500/50 flex items-center justify-between">
                     <div>
