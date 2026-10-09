@@ -1,10 +1,12 @@
-import tailwindcss from '@tailwindcss/vite';
-import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 
-// VITE_BASE lets CI deploy under a sub-path (GitHub Pages: /<repo>/).
-// Default './' keeps built assets relative so the build works anywhere.
+// https://vitejs.dev/config/
 export default defineConfig({
-  base: process.env.VITE_BASE ?? './',
-  plugins: [react(), tailwindcss()],
-});
+  plugins: [react()],
+  base: '/R-jay-/',
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+  },
+})
