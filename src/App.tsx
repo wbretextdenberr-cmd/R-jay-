@@ -7,6 +7,7 @@ import { DriverTripModal } from './components/DriverTripModal';
 import { CallProcessModal } from './components/CallProcessModal';
 import { DriverVerificationModal } from './components/DriverVerificationModal';
 import { ClientPremiumModal } from './components/ClientPremiumModal';
+import { AvailableDriverModal } from './components/AvailableDriverModal';
 
 import { RayehHomeScreen } from './screens/RayehHomeScreen';
 import { RayehRouteMapScreen } from './screens/RayehRouteMapScreen';
@@ -20,18 +21,17 @@ import {
   ReturnTrip, 
   CallRequest, 
   DriverVerification,
-  VehicleCategory
+  VehicleCategory,
+  AvailableDriver
 } from './types';
 import { api } from './services/api';
 import { IMG } from './assets';
 
 export default function App() {
-  // 1. Core State
   const [lang, setLang] = useState<Language>('ar');
   const [currentRole, setCurrentRole] = useState<UserRole>('client');
   const [currentTab, setCurrentTab] = useState<string>('home');
 
-  // 2. Active User
   const [currentUser, setCurrentUser] = useState<User>({
     id: 'usr_sofiane',
     name: 'سفيان دراجي',
@@ -44,9 +44,9 @@ export default function App() {
     createdAt: '2026-01-20T10:00:00Z'
   });
 
-  // 3. Application Data
   const [returnTrips, setReturnTrips] = useState<ReturnTrip[]>([]);
   const [callRequests, setCallRequests] = useState<CallRequest[]>([]);
+  const [availableDrivers, setAvailableDrivers] = useState<AvailableDriver[]>([]);
   const [driverVerification, setDriverVerification] = useState<DriverVerification>({
     ninNumber: '119850241852401',
     driverLicenseNumber: '08541296/16',
@@ -62,31 +62,31 @@ export default function App() {
     completedTrips: 47
   });
 
-  // 4. Modals State
   const [isSmartSuggestOpen, setIsSmartSuggestOpen] = useState(false);
   const [isDriverTripModalOpen, setIsDriverTripModalOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+  const [isAvailableModalOpen, setIsAvailableModalOpen] = useState(false);
   const [selectedTripForCall, setSelectedTripForCall] = useState<ReturnTrip | null>(null);
 
-  // Sync HTML dir attribute with language
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   }, [lang]);
 
-  // Load Trips, Calls, and Verification
   useEffect(() => {
     const initData = async () => {
       try {
-        const [trips, calls, verif] = await Promise.all([
+        const [trips, calls, verif, avail] = await Promise.all([
           api.getReturnTrips(),
           api.getCalls(),
-          api.getDriverVerification(currentUser.id)
+          api.getDriverVerification(currentUser.id),
+          api.getAvailableDrivers()
         ]);
         setReturnTrips(trips);
         setCallRequests(calls);
         setDriverVerification(verif);
+        setAvailableDrivers(avail);
       } catch (err) {
         console.warn('Init error:', err);
       }
@@ -94,7 +94,6 @@ export default function App() {
     initData();
   }, [currentUser.id]);
 
-  // Handle Driver registering a new return trip
   const handleSaveDriverTrip = async (tripData: any) => {
     const created = await api.createReturnTrip({
       driverId: currentUser.id,
@@ -108,7 +107,6 @@ export default function App() {
     setReturnTrips([created, ...returnTrips]);
   };
 
-  // Handle Driver Delay update
   const handleUpdateTripDelay = async (tripId: string, reason: string, minutes: number) => {
     const updated = await api.updateTripDelay(tripId, reason, minutes);
     if (updated) {
@@ -116,7 +114,6 @@ export default function App() {
     }
   };
 
-  // Handle Driver Finishing Trip (triggers Rest Mode)
   const handleFinishTrip = async (tripId: string) => {
     const updated = await api.finishTripAndEnterRest(tripId);
     if (updated) {
@@ -124,12 +121,10 @@ export default function App() {
     }
   };
 
-  // Handle Client initiating call
   const handleStartCall = async (trip: ReturnTrip) => {
     setSelectedTripForCall(trip);
   };
 
-  // Handle Driver accepting incoming call
   const handleAcceptCall = async (callId: string) => {
     const updated = await api.acceptCallRequest(callId);
     if (updated) {
@@ -137,12 +132,43 @@ export default function App() {
     }
   };
 
-  // Active Driver Trip
+  // ✅ السائق يعلن أنه متاح فارغ
+  const handleSetAvailable = async (data: {
+    from: string;
+    to: string;
+    via: string[];
+    departTime: string;
+    vehicleCategory: VehicleCategory;
+    vehicleName: string;
+    fixedCommissionDzd: number;
+  }) => {
+    const created = await api.setDriverAvailable({
+      driverId: currentUser.id,
+      driverName: currentUser.name,
+      driverPhone: currentUser.phone,
+      driverAvatar: currentUser.avatar,
+      reliabilityScore: driverVerification.reliabilityScore,
+      vehicleCategory: data.vehicleCategory,
+      vehicleName: data.vehicleName,
+      vehiclePhoto: IMG.portechar,
+      from: data.from,
+      to: data.to,
+      via: data.via,
+      departTime: data.departTime,
+      fixedCommissionDzd: data.fixedCommissionDzd
+    });
+
+    // إزالة أي إتاحة سابقة لنفس السائق + إضافة الجديدة
+    setAvailableDrivers([
+      created,
+      ...availableDrivers.filter(d => d.driverId !== currentUser.id)
+    ]);
+  };
+
   const activeDriverTrip = returnTrips.find(t => t.driverId === currentUser.id) || returnTrips[0] || null;
 
   return (
     <CockpitFrame lang={lang}>
-      {/* Top Bar */}
       <RayehTopBar
         user={currentUser}
         currentRole={currentRole}
@@ -152,7 +178,6 @@ export default function App() {
         onOpenProfile={() => setCurrentTab('profile')}
       />
 
-      {/* Main Screen Content */}
       <main className="flex-1 flex flex-col overflow-y-auto no-scrollbar">
         {currentTab === 'home' ? (
           <RayehHomeScreen
@@ -160,9 +185,11 @@ export default function App() {
             currentRole={currentRole}
             lang={lang}
             returnTrips={returnTrips}
+            availableDrivers={availableDrivers}
             activeDriverTrip={activeDriverTrip}
             onOpenSmartSuggest={() => setIsSmartSuggestOpen(true)}
             onOpenDriverTripModal={() => setIsDriverTripModalOpen(true)}
+            onOpenAvailableModal={() => setIsAvailableModalOpen(true)}
             onOpenCallModal={(trip) => handleStartCall(trip)}
             onOpenPremiumModal={() => setIsPremiumModalOpen(true)}
             onOpenVerificationModal={() => setIsVerificationModalOpen(true)}
@@ -194,7 +221,6 @@ export default function App() {
         ) : null}
       </main>
 
-      {/* Bottom Navigation */}
       <RayehBottomNav
         currentTab={currentTab}
         onSelectTab={(tab) => setCurrentTab(tab)}
@@ -218,6 +244,14 @@ export default function App() {
         onSaveTrip={handleSaveDriverTrip}
         onUpdateDelay={handleUpdateTripDelay}
         onFinishTrip={handleFinishTrip}
+      />
+
+      {/* ✅ NEW: Available Driver Modal */}
+      <AvailableDriverModal
+        isOpen={isAvailableModalOpen}
+        onClose={() => setIsAvailableModalOpen(false)}
+        lang={lang}
+        onSetAvailable={handleSetAvailable}
       />
 
       <CallProcessModal
