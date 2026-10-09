@@ -82,6 +82,26 @@ export interface ReturnTrip {
   restUntil?: string;
 }
 
+// ============ السائق المتاح فارغاً (الميزة الجديدة) ============
+export interface AvailableDriver {
+  id: string;
+  driverId: string;
+  driverName: string;
+  driverPhone: string;
+  driverAvatar: string;
+  reliabilityScore: number;
+  vehicleCategory: VehicleCategory;
+  vehicleName: string;
+  vehiclePhoto: string;
+  from: string;              // نقطة الانطلاق الحالية (مثال: "بشار")
+  to: string;                // الوجهة النهائية (مثال: "الجزائر العاصمة")
+  via: string[];             // الولايات الوسيطة (مثال: ["وهران", "الشلف"])
+  departTime: string;        // وقت المرور بنقطة "من" (مثال: "غداً 06:00")
+  fixedCommissionDzd: number;
+  status: 'EMPTY';           // دائماً فارغ
+  createdAt: string;
+}
+
 export interface CargoSearchQuery {
   pickupWilaya: string;
   dropoffWilaya: string;
