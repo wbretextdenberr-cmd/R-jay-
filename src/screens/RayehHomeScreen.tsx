@@ -57,35 +57,24 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
   const [destinationWilaya, setDestinationWilaya] = useState<string>('الجزائر العاصمة');
   const [filterAlongRoute, setFilterAlongRoute] = useState<boolean>(true);
 
-  // ============ السائقون المتاحون (الميزة الجديدة) ============
+  // السائقون المتاحون فارغون (يطابقون نقطتي الزبون)
   const matchedAvailableDrivers = availableDrivers.filter((d) => {
     if (d.status !== 'EMPTY') return false;
-
-    // المسار الكامل: من + عبر + إلى
     const route = [d.from, ...d.via, d.to];
     const originIdx = route.indexOf(pickupWilaya);
     const destIdx = route.indexOf(destinationWilaya);
-
     if (originIdx === -1 || destIdx === -1) return false;
     return originIdx < destIdx;
   });
 
-  // ============ السائقون المرشحون (المنطق القديم) ============
+  // السائقون المرشحون (المنطق القديم)
   const candidateTrips = returnTrips.filter((trip) => {
     if (trip.status === 'RESTING') return false;
-
-    if (selectedCategory !== 'ALL' && trip.vehicleCategory !== selectedCategory) {
-      return false;
-    }
-
-    if (filterAlongRoute && trip.acceptAlongRoute) {
-      return true;
-    }
-
+    if (selectedCategory !== 'ALL' && trip.vehicleCategory !== selectedCategory) return false;
+    if (filterAlongRoute && trip.acceptAlongRoute) return true;
     const matchesDestination = 
       trip.toWilaya.includes(destinationWilaya) || 
       destinationWilaya.includes(trip.toWilaya);
-    
     return matchesDestination;
   });
 
@@ -93,8 +82,8 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
 
   return (
     <div className="w-full flex-1 flex flex-col pb-20 overflow-y-auto no-scrollbar">
-      
-      {/* 1. REST MODE BANNER */}
+
+      {/* REST MODE BANNER */}
       {currentRole === 'driver' && activeDriverTrip?.status === 'RESTING' && (
         <div className="mx-4 mt-3 p-4 rounded-2xl bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 border border-indigo-500/40 text-center space-y-2 animate-fade-in shadow-xl">
           <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
@@ -117,7 +106,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         </div>
       )}
 
-      {/* 2. DRIVER ACTIVE RETURN TRIP QUICK CARD */}
+      {/* DRIVER ACTIVE TRIP CARD */}
       {currentRole === 'driver' && activeDriverTrip && activeDriverTrip.status !== 'RESTING' && (
         <div className="mx-4 mt-3 p-3.5 rounded-2xl bg-slate-900/90 border border-emerald-500/40 shadow-lg space-y-2.5">
           <div className="flex items-center justify-between">
@@ -156,7 +145,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         </div>
       )}
 
-      {/* 3. AUTOMOTIVE 2x2 GRID */}
+      {/* AUTOMOTIVE GRID */}
       <div className="mt-1">
         <AutomotiveGridButtons
           selectedCategory={selectedCategory}
@@ -165,7 +154,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         />
       </div>
 
-      {/* 4. ACTIONS BAR */}
+      {/* ACTIONS BAR */}
       <div className="px-4 py-1.5 flex gap-2">
         <button
           onClick={onOpenSmartSuggest}
@@ -176,13 +165,25 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         </button>
 
         {currentRole === 'driver' ? (
-          <button
-            onClick={onOpenDriverTripModal}
-            className="py-2.5 px-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 font-bold text-xs flex items-center gap-1 active:scale-98 transition-all cursor-pointer"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>{isAr ? 'تسجيل رحلة' : 'Nouveau trajet'}</span>
-          </button>
+          <>
+            {/* ✅ NEW: زر "متاح فارغ" */}
+            <button
+              onClick={onOpenAvailableModal}
+              className="py-2.5 px-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 border border-amber-400 font-black text-xs flex items-center gap-1 active:scale-98 transition-all cursor-pointer shadow-md shadow-amber-500/20"
+              title={isAr ? 'أعلن أنك متاح فارغ الآن' : 'Déclarer disponible à vide'}
+            >
+              <Zap className="w-4 h-4 fill-current" />
+              <span>{isAr ? 'متاح فارغ' : 'Dispo vide'}</span>
+            </button>
+
+            <button
+              onClick={onOpenDriverTripModal}
+              className="py-2.5 px-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 font-bold text-xs flex items-center gap-1 active:scale-98 transition-all cursor-pointer"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>{isAr ? 'رحلة' : 'Trajet'}</span>
+            </button>
+          </>
         ) : (
           <button
             onClick={onOpenPremiumModal}
@@ -194,7 +195,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         )}
       </div>
 
-      {/* 5. CLIENT SEARCH CARD */}
+      {/* SEARCH CARD */}
       <div className="mx-4 mt-2 p-3.5 rounded-2xl bg-[#141822] border border-slate-800 shadow-xl space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -258,7 +259,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         </label>
       </div>
 
-      {/* 6. AVAILABLE DRIVERS (الميزة الجديدة - زر متاح فارغ) */}
+      {/* AVAILABLE DRIVERS (الميزة الجديدة) */}
       {matchedAvailableDrivers.length > 0 && (
         <div className="mx-4 mt-4 space-y-3">
           <div className="flex items-center justify-between">
@@ -342,7 +343,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         </div>
       )}
 
-      {/* 7. CANDIDATE DRIVERS (المنطق القديم) */}
+      {/* CANDIDATE DRIVERS */}
       <div className="mx-4 mt-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
