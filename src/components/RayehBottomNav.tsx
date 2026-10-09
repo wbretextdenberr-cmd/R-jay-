@@ -61,7 +61,6 @@ export const RayehBottomNav: React.FC<RayehBottomNavProps> = ({
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            {/* Green Neon Active Bar Above the Active Icon (Faithfully matching the reference photo) */}
             {isActive && (
               <span className="absolute -top-1.5 w-8 h-[2.5px] rounded-full bg-emerald-400 shadow-[0_0_8px_#10b981]" />
             )}
