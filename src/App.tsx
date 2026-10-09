@@ -28,8 +28,7 @@ import { IMG } from './assets';
 export default function App() {
   // 1. Core State
   const [lang, setLang] = useState<Language>('ar');
-  const [currentRole, setCurrentRole] = useState<UserRole>('client'); // Default as Client (searching) with easy 1-click toggle to Driver
-  const [isCockpitView, setIsCockpitView] = useState<boolean>(true); // Starts in cockpit phone view matching the user's reference image
+  const [currentRole, setCurrentRole] = useState<UserRole>('client');
   const [currentTab, setCurrentTab] = useState<string>('home');
 
   // 2. Active User
@@ -70,7 +69,7 @@ export default function App() {
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [selectedTripForCall, setSelectedTripForCall] = useState<ReturnTrip | null>(null);
 
-  // Sync HTML dir attribute with language (RTL for Arabic, LTR for French)
+  // Sync HTML dir attribute with language
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
@@ -138,16 +137,12 @@ export default function App() {
     }
   };
 
-  // Active Driver Trip (if currently in driver mode)
+  // Active Driver Trip
   const activeDriverTrip = returnTrips.find(t => t.driverId === currentUser.id) || returnTrips[0] || null;
 
   return (
-    <CockpitFrame
-      isCockpitView={isCockpitView}
-      onToggleView={() => setIsCockpitView(!isCockpitView)}
-      lang={lang}
-    >
-      {/* Top Bar with Hazard Warning Triangle & Profile */}
+    <CockpitFrame lang={lang}>
+      {/* Top Bar */}
       <RayehTopBar
         user={currentUser}
         currentRole={currentRole}
@@ -199,7 +194,7 @@ export default function App() {
         ) : null}
       </main>
 
-      {/* Bottom Navigation with Green LED underglow */}
+      {/* Bottom Navigation */}
       <RayehBottomNav
         currentTab={currentTab}
         onSelectTab={(tab) => setCurrentTab(tab)}
@@ -208,18 +203,13 @@ export default function App() {
       />
 
       {/* MODALS */}
-
-      {/* 1. Smart Suggest Modal ("زر اقتراح العربة") */}
       <SmartSuggestModal
         isOpen={isSmartSuggestOpen}
         onClose={() => setIsSmartSuggestOpen(false)}
         lang={lang}
-        onApplyCategory={(cat) => {
-          // Can filter or auto-select
-        }}
+        onApplyCategory={(cat) => {}}
       />
 
-      {/* 2. Driver Return Trip Registration & Delay Management */}
       <DriverTripModal
         isOpen={isDriverTripModalOpen}
         onClose={() => setIsDriverTripModalOpen(false)}
@@ -230,7 +220,6 @@ export default function App() {
         onFinishTrip={handleFinishTrip}
       />
 
-      {/* 3. Direct Call Process Modal (Client calls & reveals phone) */}
       <CallProcessModal
         trip={selectedTripForCall}
         isOpen={!!selectedTripForCall}
@@ -260,7 +249,6 @@ export default function App() {
         }}
       />
 
-      {/* 4. Driver Mandatory Verification Modal */}
       <DriverVerificationModal
         isOpen={isVerificationModalOpen}
         onClose={() => setIsVerificationModalOpen(false)}
@@ -269,7 +257,6 @@ export default function App() {
         onSaved={(verif) => setDriverVerification(verif)}
       />
 
-      {/* 5. Client 6 Premium Benefits Modal */}
       <ClientPremiumModal
         isOpen={isPremiumModalOpen}
         onClose={() => setIsPremiumModalOpen(false)}
