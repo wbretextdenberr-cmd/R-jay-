@@ -10,6 +10,7 @@ import {
   AvailableDriver
 } from '../types';
 import { IMG } from '../assets';
+import { matchAvailableDrivers } from './routeMatcher';
 
 const STORAGE_KEYS = {
   USER: 'rayeh_jay_current_user',
@@ -284,19 +285,10 @@ export const api = {
     localStorage.setItem(STORAGE_KEYS.AVAILABLE, JSON.stringify(filtered));
   },
 
-  // البحث: زبون يريد من origin إلى destination
+  // البحث: زبون يريد من origin إلى destination (نفس منطق المطابقة المستعمل في الشاشة)
   async searchAvailableDrivers(origin: string, destination: string): Promise<AvailableDriver[]> {
     const drivers = await this.getAvailableDrivers();
-    return drivers.filter(d => {
-      if (d.status !== 'EMPTY') return false;
-
-      const route = [d.from, ...d.via, d.to];
-      const originIdx = route.indexOf(origin);
-      const destIdx = route.indexOf(destination);
-
-      if (originIdx === -1 || destIdx === -1) return false;
-      return originIdx < destIdx;
-    });
+    return matchAvailableDrivers(origin, destination, drivers);
   },
 
   suggestVehicleCategory(weightKg: number, description: string): {
