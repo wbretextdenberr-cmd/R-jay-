@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Zap, X, Check, MapPin, Plus, Minus, Truck } from 'lucide-react';
 import { Language, VehicleCategory } from '../types';
 import { WILAYAS, VEHICLE_CATEGORIES_INFO } from '../locales/translations';
+import { suggestRouteNames, findPath, wilayaCode, wilayaName } from '../services/roadNetwork';
 
 interface AvailableDriverModalProps {
   isOpen: boolean;
@@ -26,14 +27,26 @@ export const AvailableDriverModal: React.FC<AvailableDriverModalProps> = ({
 }) => {
   const isAr = lang === 'ar';
 
-  const [from, setFrom] = useState('بشار');
-  const [to, setTo] = useState('الجزائر العاصمة');
-  const [via, setVia] = useState<string[]>(['وهران']);
+  // الافتراضي: بشار ← الجزائر العاصمة، والمسار الكامل يُحسب تلقائياً من شبكة الطرق الوطنية.
+  // قائمة "via" هنا للمحطات الإضافية فقط (إذا كان السائق يسلك طريقاً غير الأقصر).
+  const [from, setFrom] = useState(wilayaName('08', lang));
+  const [to, setTo] = useState(wilayaName('16', lang));
+  const [via, setVia] = useState<string[]>([]);
   const [departTime, setDepartTime] = useState('غداً 06:00');
   const [vehicleCategory, setVehicleCategory] = useState<VehicleCategory>('C1');
   const [vehicleName, setVehicleName] = useState('Renault Trucks D16');
 
   if (!isOpen) return null;
+
+  // المسار الكامل المحسوب (انطلاق ← ... ← وصول) ليراه السائق قبل التفعيل
+  const cleanViaPreview = via.filter(v => v.trim() !== '');
+  const suggestedRoute = suggestRouteNames(from, cleanViaPreview, to, lang);
+  const fromCode = wilayaCode(from);
+  const toCode = wilayaCode(to);
+  const sameWilaya = !!fromCode && fromCode === toCode;
+  const noNetworkPath =
+    !!fromCode && !!toCode && !sameWilaya &&
+    cleanViaPreview.length === 0 && findPath(fromCode, toCode) === null;
 
   const addVia = () => {
     setVia([...via, '']);
@@ -113,7 +126,7 @@ export const AvailableDriverModal: React.FC<AvailableDriverModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-bold text-slate-200">
-                {isAr ? '🛣️ عبر (الولايات الوسيطة):' : '🛣️ Via (villes traversées) :'}
+                {isAr ? '🛣️ محطات إضافية (اختياري):' : '🛣️ Étapes supplémentaires (optionnel) :'}
               </label>
               <button
                 type="button"
@@ -128,7 +141,9 @@ export const AvailableDriverModal: React.FC<AvailableDriverModalProps> = ({
             <div className="space-y-2">
               {via.length === 0 && (
                 <p className="text-[11px] text-slate-500 text-center py-2">
-                  {isAr ? 'لم تضف أي ولاية وسيطة بعد' : 'Aucune ville intermédiaire'}
+                  {isAr
+                    ? 'المسار يُحسب تلقائياً من الطرق الوطنية. أضف ولاية فقط إذا كنت تسلك طريقاً آخر.'
+                    : 'Le trajet est calculé automatiquement. Ajoutez une wilaya seulement si vous prenez une autre route.'}
                 </p>
               )}
               {via.map((v, idx) => (
@@ -173,6 +188,28 @@ export const AvailableDriverModal: React.FC<AvailableDriverModalProps> = ({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="p-3 rounded-xl bg-slate-950 border border-amber-500/30 space-y-1.5">
+            <p className="text-[11px] font-bold text-amber-400">
+              {isAr ? '🧭 المسار الذي سيراه الزبائن (محسوب تلقائياً):' : '🧭 Trajet visible par les clients (calcul auto) :'}
+            </p>
+            {sameWilaya ? (
+              <p className="text-[11px] text-rose-400">
+                {isAr ? 'نقطة البداية والوجهة متطابقتان، اختر ولايتين مختلفتين.' : 'Départ et destination identiques.'}
+              </p>
+            ) : (
+              <p className="text-[11px] text-slate-200 leading-relaxed">
+                {suggestedRoute.join(' ← ')}
+              </p>
+            )}
+            {noNetworkPath && (
+              <p className="text-[10px] text-amber-300 leading-snug">
+                {isAr
+                  ? '⚠️ لا يوجد طريق وطني مسجّل بين هاتين الولايتين في الشبكة. أضف محطات إضافية ليعرف الزبائن أين تمر.'
+                  : '⚠️ Aucune route nationale enregistrée entre ces wilayas. Ajoutez des étapes.'}
+              </p>
+            )}
           </div>
 
           <div>
@@ -229,7 +266,7 @@ export const AvailableDriverModal: React.FC<AvailableDriverModalProps> = ({
 
           <p className="text-[10px] text-slate-500 text-center leading-snug">
             {isAr 
-              ? '⚡ ستظهر لجميع الزبائن الذين تقع حمولتهم على طول مسارك، ويمكنهم الاتصال بك مباشرة.' 
+              ? '⚡ ستظهر للزبائن الذين تقع حمولتهم على مسارك ووجهتهم بعدها على نفس المسار، ويمكنهم الاتصال بك مباشرة.' 
               : '⚡ Vous apparaîtrez à tous les clients dont la marchandise se trouve sur votre route.'}
           </p>
         </form>
