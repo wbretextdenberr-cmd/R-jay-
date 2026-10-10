@@ -15,7 +15,23 @@ import {
 import { ReturnTrip, VehicleCategory, User, UserRole, Language, AvailableDriver } from '../types';
 import { AutomotiveGridButtons } from '../components/AutomotiveGridButtons';
 import { WILAYAS, VEHICLE_CATEGORIES_INFO } from '../locales/translations';
-import { matchAvailableDrivers } from '../services/routeMatcher';
+import {
+  matchAvailableDriversDetailed,
+  matchReturnTrips,
+  MatchKind
+} from '../services/routeMatcher';
+
+// شارة نوع المطابقة على بطاقة السائق
+const MatchBadge: React.FC<{ kind: MatchKind; isAr: boolean }> = ({ kind, isAr }) =>
+  kind === 'EXACT' ? (
+    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+      ✅ {isAr ? 'عائد فارغاً لوجهتك' : 'Retour à vide vers votre destination'}
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-300 bg-sky-500/10 border border-sky-500/30 px-2 py-0.5 rounded-full">
+      🛣️ {isAr ? 'يمر بطريقك' : 'Passe par votre trajet'}
+    </span>
+  );
 
 interface RayehHomeScreenProps {
   user: User;
@@ -53,23 +69,27 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
   const [destinationWilaya, setDestinationWilaya] = useState<string>('الجزائر العاصمة');
   const [filterAlongRoute, setFilterAlongRoute] = useState<boolean>(true);
 
-  // مطابقة السائقين المتاحين
-  const matchedAvailableDrivers = matchAvailableDrivers(
+  // مطابقة السائقين المتاحين (فارغون الآن) حسب شبكة الطرق الوطنية
+  const matchOptions = {
+    category: selectedCategory,
+    includeAlongRoute: filterAlongRoute,
+    lang
+  };
+
+  const matchedAvailableDrivers = matchAvailableDriversDetailed(
     pickupWilaya,
     destinationWilaya,
-    availableDrivers
+    availableDrivers,
+    matchOptions
   );
 
-  // السائقون المرشحون (المنطق القديم)
-  const candidateTrips = returnTrips.filter((trip) => {
-    if (trip.status === 'RESTING') return false;
-    if (selectedCategory !== 'ALL' && trip.vehicleCategory !== selectedCategory) return false;
-    if (filterAlongRoute && trip.acceptAlongRoute) return true;
-    return (
-      trip.toWilaya.includes(destinationWilaya) ||
-      destinationWilaya.includes(trip.toWilaya)
-    );
-  });
+  // رحلات العودة المنشورة: نفس منطق المطابقة (الانطلاق قبل الوصول على مسار السائق)
+  const candidateTrips = matchReturnTrips(
+    pickupWilaya,
+    destinationWilaya,
+    returnTrips,
+    matchOptions
+  );
 
   const totalResults = matchedAvailableDrivers.length + candidateTrips.length;
 
@@ -222,7 +242,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
             onChange={(e) => setFilterAlongRoute(e.target.checked)}
             className="w-4 h-4 accent-emerald-500 rounded"
           />
-          <span>{isAr ? 'إظهار السائقين على طول المسار وداخل دائرة 30 كم' : 'Inclure rayon 30 km et trajet complet'}</span>
+          <span>{isAr ? 'إظهار السائقين الذين يمرون بطريقي (ليس المطابقين تماماً فقط)' : 'Inclure les chauffeurs qui passent par mon trajet'}</span>
         </label>
       </div>
 
@@ -240,7 +260,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
             </span>
           </div>
 
-          {matchedAvailableDrivers.map((d) => (
+          {matchedAvailableDrivers.map(({ driver: d, match }) => (
             <div 
               key={d.id}
               className="p-3.5 rounded-2xl bg-gradient-to-b from-amber-950/30 to-[#11141c] border border-amber-500/40 hover:border-amber-400/60 shadow-md space-y-3 transition-all"
@@ -277,15 +297,19 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
                 </div>
               </div>
 
+              <div>
+                <MatchBadge kind={match.kind} isAr={isAr} />
+              </div>
+
               <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] space-y-1">
                 <div className="flex items-center justify-between text-white font-semibold">
                   <span className="truncate">{d.from}</span>
                   <span className="text-amber-400 font-mono px-1">➜</span>
                   <span className="truncate">{d.to}</span>
                 </div>
-                {d.via.length > 0 && (
-                  <p className="text-[10px] text-slate-400 truncate">
-                    {isAr ? 'عبر: ' : 'Via: '}{d.via.join(' ← ')}
+                {match.routeNames.length > 2 && (
+                  <p className="text-[10px] text-slate-400 leading-snug">
+                    {isAr ? 'عبر: ' : 'Via: '}{match.routeNames.slice(1, -1).join(' ← ')}
                   </p>
                 )}
               </div>
@@ -326,13 +350,15 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
           <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
             <Truck className="w-8 h-8 text-slate-600 mx-auto" />
             <p className="text-xs text-slate-400">
-              {isAr 
-                ? 'لا يوجد ناقل عائد يطابق هذا الصنف والوجهة حالياً.' 
-                : 'Aucun transporteur trouvé sur ce trajet pour l\'instant.'}
+              {pickupWilaya === destinationWilaya
+                ? (isAr ? 'اختر ولايتين مختلفتين للانطلاق والوجهة.' : 'Choisissez deux wilayas différentes.')
+                : isAr 
+                  ? 'لا يوجد ناقل عائد يمر بنقطة انطلاقك ثم وجهتك حالياً.' 
+                  : 'Aucun transporteur ne passe par votre départ puis votre destination.'}
             </p>
           </div>
         ) : (
-          candidateTrips.map((trip) => {
+          candidateTrips.map(({ trip, match }) => {
             const catInfo = VEHICLE_CATEGORIES_INFO[trip.vehicleCategory];
             return (
               <div 
@@ -377,6 +403,10 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
                   </div>
                 </div>
 
+                <div>
+                  <MatchBadge kind={match.kind} isAr={isAr} />
+                </div>
+
                 <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] space-y-1">
                   <div className="flex items-center justify-between text-white font-semibold">
                     <span className="truncate">{trip.fromWilaya}</span>
@@ -384,6 +414,11 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
                     <span className="truncate">{trip.toWilaya}</span>
                   </div>
                   <p className="text-[10px] text-slate-400 truncate">{trip.routeUsed}</p>
+                  {match.routeNames.length > 2 && (
+                    <p className="text-[10px] text-slate-500 leading-snug">
+                      {isAr ? 'عبر: ' : 'Via: '}{match.routeNames.slice(1, -1).join(' ← ')}
+                    </p>
+                  )}
                 </div>
 
                 {trip.delayMinutes > 0 && (
