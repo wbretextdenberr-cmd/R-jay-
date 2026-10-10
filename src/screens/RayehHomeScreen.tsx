@@ -1,16 +1,11 @@
 import React, { useState } from 'react';
 import { 
   Search, 
-  MapPin, 
   Sparkles, 
   Phone, 
   Clock, 
   CheckCircle2, 
   Truck, 
-  Filter, 
-  Navigation, 
-  Coins, 
-  ShieldCheck, 
   Coffee,
   AlertCircle,
   PlusCircle,
@@ -20,6 +15,7 @@ import {
 import { ReturnTrip, VehicleCategory, User, UserRole, Language, AvailableDriver } from '../types';
 import { AutomotiveGridButtons } from '../components/AutomotiveGridButtons';
 import { WILAYAS, VEHICLE_CATEGORIES_INFO } from '../locales/translations';
+import { matchAvailableDrivers } from '../services/routeMatcher';
 
 interface RayehHomeScreenProps {
   user: User;
@@ -57,25 +53,22 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
   const [destinationWilaya, setDestinationWilaya] = useState<string>('الجزائر العاصمة');
   const [filterAlongRoute, setFilterAlongRoute] = useState<boolean>(true);
 
-  // السائقون المتاحون فارغون (يطابقون نقطتي الزبون)
-  const matchedAvailableDrivers = availableDrivers.filter((d) => {
-    if (d.status !== 'EMPTY') return false;
-    const route = [d.from, ...d.via, d.to];
-    const originIdx = route.indexOf(pickupWilaya);
-    const destIdx = route.indexOf(destinationWilaya);
-    if (originIdx === -1 || destIdx === -1) return false;
-    return originIdx < destIdx;
-  });
+  // مطابقة السائقين المتاحين
+  const matchedAvailableDrivers = matchAvailableDrivers(
+    pickupWilaya,
+    destinationWilaya,
+    availableDrivers
+  );
 
   // السائقون المرشحون (المنطق القديم)
   const candidateTrips = returnTrips.filter((trip) => {
     if (trip.status === 'RESTING') return false;
     if (selectedCategory !== 'ALL' && trip.vehicleCategory !== selectedCategory) return false;
     if (filterAlongRoute && trip.acceptAlongRoute) return true;
-    const matchesDestination = 
-      trip.toWilaya.includes(destinationWilaya) || 
-      destinationWilaya.includes(trip.toWilaya);
-    return matchesDestination;
+    return (
+      trip.toWilaya.includes(destinationWilaya) ||
+      destinationWilaya.includes(trip.toWilaya)
+    );
   });
 
   const totalResults = matchedAvailableDrivers.length + candidateTrips.length;
@@ -83,7 +76,6 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
   return (
     <div className="w-full flex-1 flex flex-col pb-20 overflow-y-auto no-scrollbar">
 
-      {/* REST MODE BANNER */}
       {currentRole === 'driver' && activeDriverTrip?.status === 'RESTING' && (
         <div className="mx-4 mt-3 p-4 rounded-2xl bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 border border-indigo-500/40 text-center space-y-2 animate-fade-in shadow-xl">
           <div className="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto">
@@ -106,7 +98,6 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         </div>
       )}
 
-      {/* DRIVER ACTIVE TRIP CARD */}
       {currentRole === 'driver' && activeDriverTrip && activeDriverTrip.status !== 'RESTING' && (
         <div className="mx-4 mt-3 p-3.5 rounded-2xl bg-slate-900/90 border border-emerald-500/40 shadow-lg space-y-2.5">
           <div className="flex items-center justify-between">
@@ -121,31 +112,20 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
               {isAr ? 'تعديل / تسجيل تأخير' : 'Modifier / Signaler retard'}
             </button>
           </div>
-
           <div className="flex items-center justify-between text-xs text-white font-bold bg-slate-950 p-2.5 rounded-xl border border-slate-800">
             <span>{activeDriverTrip.fromWilaya}</span>
             <span className="text-emerald-400 font-mono">➜</span>
             <span>{activeDriverTrip.toWilaya}</span>
           </div>
-
           <div className="flex items-center justify-between text-[11px] text-slate-300">
             <span>{activeDriverTrip.routeUsed}</span>
             <span className="font-mono text-emerald-400 font-bold">
               ETA: {activeDriverTrip.estimatedArrivalTime}
             </span>
           </div>
-
-          {activeDriverTrip.delayMinutes > 0 && (
-            <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300">
-              {isAr 
-                ? `⚠️ تأخير مسجل: +${activeDriverTrip.delayMinutes} دقيقة (${activeDriverTrip.delayReason})` 
-                : `⚠️ Retard signalé : +${activeDriverTrip.delayMinutes} min`}
-            </div>
-          )}
         </div>
       )}
 
-      {/* AUTOMOTIVE GRID */}
       <div className="mt-1">
         <AutomotiveGridButtons
           selectedCategory={selectedCategory}
@@ -154,7 +134,6 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         />
       </div>
 
-      {/* ACTIONS BAR */}
       <div className="px-4 py-1.5 flex gap-2">
         <button
           onClick={onOpenSmartSuggest}
@@ -166,16 +145,13 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
 
         {currentRole === 'driver' ? (
           <>
-            {/* ✅ NEW: زر "متاح فارغ" */}
             <button
               onClick={onOpenAvailableModal}
               className="py-2.5 px-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 border border-amber-400 font-black text-xs flex items-center gap-1 active:scale-98 transition-all cursor-pointer shadow-md shadow-amber-500/20"
-              title={isAr ? 'أعلن أنك متاح فارغ الآن' : 'Déclarer disponible à vide'}
             >
               <Zap className="w-4 h-4 fill-current" />
               <span>{isAr ? 'متاح فارغ' : 'Dispo vide'}</span>
             </button>
-
             <button
               onClick={onOpenDriverTripModal}
               className="py-2.5 px-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 font-bold text-xs flex items-center gap-1 active:scale-98 transition-all cursor-pointer"
@@ -195,21 +171,12 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         )}
       </div>
 
-      {/* SEARCH CARD */}
       <div className="mx-4 mt-2 p-3.5 rounded-2xl bg-[#141822] border border-slate-800 shadow-xl space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-white flex items-center gap-1.5">
             <Search className="w-3.5 h-3.5 text-emerald-400" />
             <span>{isAr ? 'البحث عن ناقل عائد (شاحنة فارغة)' : 'Recherche de retour à vide'}</span>
           </span>
-          {selectedCategory !== 'ALL' && (
-            <button
-              onClick={() => setSelectedCategory('ALL')}
-              className="text-[10px] text-emerald-400 hover:underline"
-            >
-              {isAr ? 'إلغاء الفلتر' : 'Tous les véhicules'}
-            </button>
-          )}
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -259,7 +226,6 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         </label>
       </div>
 
-      {/* AVAILABLE DRIVERS (الميزة الجديدة) */}
       {matchedAvailableDrivers.length > 0 && (
         <div className="mx-4 mt-4 space-y-3">
           <div className="flex items-center justify-between">
@@ -343,7 +309,6 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
         </div>
       )}
 
-      {/* CANDIDATE DRIVERS */}
       <div className="mx-4 mt-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
@@ -365,20 +330,10 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
                 ? 'لا يوجد ناقل عائد يطابق هذا الصنف والوجهة حالياً.' 
                 : 'Aucun transporteur trouvé sur ce trajet pour l\'instant.'}
             </p>
-            <button
-              onClick={() => {
-                setSelectedCategory('ALL');
-                setFilterAlongRoute(true);
-              }}
-              className="text-xs font-bold text-emerald-400 hover:underline"
-            >
-              {isAr ? 'عرض جميع الأصناف على المسار' : 'Voir tous les véhicules disponibles'}
-            </button>
           </div>
         ) : (
           candidateTrips.map((trip) => {
             const catInfo = VEHICLE_CATEGORIES_INFO[trip.vehicleCategory];
-
             return (
               <div 
                 key={trip.id}
@@ -403,14 +358,12 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
                         {trip.driverName}
                       </h4>
                       <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                        {trip.reliabilityScore}% {isAr ? 'موثوقية' : 'Fiabilité'}
+                        {trip.reliabilityScore}%
                       </span>
                     </div>
-
                     <p className="text-[11px] text-slate-300 font-semibold truncate mt-0.5">
                       {trip.vehicleName}
                     </p>
-
                     <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-1">
                       <span className="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 text-emerald-300">
                         {isAr ? catInfo?.nameAr : catInfo?.nameFr}
@@ -430,24 +383,21 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
                     <span className="text-emerald-400 font-mono px-1">➜</span>
                     <span className="truncate">{trip.toWilaya}</span>
                   </div>
-                  <p className="text-[10px] text-slate-400 truncate">
-                    {trip.routeUsed}
-                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">{trip.routeUsed}</p>
                 </div>
 
                 {trip.delayMinutes > 0 && (
                   <div className="text-[10px] text-amber-300 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/30 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3 text-amber-400 shrink-0" />
-                    <span>{isAr ? `تأخير: +${trip.delayMinutes} دقيقة (${trip.delayReason})` : `Retard: +${trip.delayMinutes} min`}</span>
+                    <span>{isAr ? `تأخير: +${trip.delayMinutes} دقيقة` : `Retard: +${trip.delayMinutes} min`}</span>
                   </div>
                 )}
 
                 <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
                   <div className="text-[10px] text-slate-400">
-                    <span className="block">{isAr ? 'العمولة الثابتة (يدفعها السائق):' : 'Commission forfaitaire :'}</span>
+                    <span className="block">{isAr ? 'العمولة:' : 'Commission :'}</span>
                     <span className="font-mono font-bold text-emerald-400">{catInfo?.fixedCommissionDzd} دج</span>
                   </div>
-
                   <button
                     onClick={() => onOpenCallModal(trip)}
                     className="py-2 px-5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer"
