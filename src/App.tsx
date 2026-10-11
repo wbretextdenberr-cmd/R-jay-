@@ -28,6 +28,12 @@ import { api } from './services/api';
 import { IMG } from './assets';
 import { isDriverAvailable } from './services/routeMatcher';
 
+// أرقام الهاتف: تُقرأ من اليسار إلى اليمين حتى في الواجهة العربية (بدل أن تنقلب مجموعات الأرقام)
+const PHONE_FIX_CSS = `
+a[href^="tel:"].font-mono{direction:ltr;unicode-bidi:isolate;text-align:center}
+p.font-mono.text-emerald-400.mt-0\\.5{direction:ltr;unicode-bidi:isolate;width:fit-content}
+`;
+
 export default function App() {
   const [lang, setLang] = useState<Language>('ar');
   const [currentRole, setCurrentRole] = useState<UserRole>('client');
@@ -170,10 +176,16 @@ export default function App() {
   };
 
   const activeDriverTrip = returnTrips.find(t => t.driverId === currentUser.id) || returnTrips[0] || null;
+  // نافذة إدارة الرحلة تخص الرحلة الجارية فقط. بعد الراحة أو الوصول تُفتح نافذة تسجيل رحلة جديدة.
+  const manageableTrip =
+    activeDriverTrip && activeDriverTrip.status !== 'RESTING' && activeDriverTrip.status !== 'ARRIVED'
+      ? activeDriverTrip
+      : null;
   const currentAvailability = isDriverAvailable(currentUser.id, availableDrivers);
 
   return (
     <CockpitFrame lang={lang}>
+      <style>{PHONE_FIX_CSS}</style>
       <RayehTopBar
         user={currentUser}
         currentRole={currentRole}
@@ -246,7 +258,7 @@ export default function App() {
         isOpen={isDriverTripModalOpen}
         onClose={() => setIsDriverTripModalOpen(false)}
         lang={lang}
-        activeTrip={activeDriverTrip}
+        activeTrip={manageableTrip}
         onSaveTrip={handleSaveDriverTrip}
         onUpdateDelay={handleUpdateTripDelay}
         onFinishTrip={handleFinishTrip}
