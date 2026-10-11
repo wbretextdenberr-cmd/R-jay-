@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Zap, X, Check, MapPin, Plus, Minus, Truck } from 'lucide-react';
 import { Language, VehicleCategory } from '../types';
 import { WILAYAS, VEHICLE_CATEGORIES_INFO } from '../locales/translations';
-import { suggestRouteNames, findPath, wilayaCode, wilayaName } from '../services/roadNetwork';
+import { suggestRouteNames, findPath, wilayaCode, wilayaName, localizeWilaya } from '../services/roadNetwork';
 
 interface AvailableDriverModalProps {
   isOpen: boolean;
@@ -111,7 +111,7 @@ export const AvailableDriverModal: React.FC<AvailableDriverModalProps> = ({
               {isAr ? '📍 من (نقطة البداية):' : '📍 De (Point de départ) :'}
             </label>
             <select
-              value={from}
+              value={localizeWilaya(from, lang)}
               onChange={(e) => setFrom(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-amber-500 text-white text-sm outline-none"
             >
@@ -150,7 +150,7 @@ export const AvailableDriverModal: React.FC<AvailableDriverModalProps> = ({
                 <div key={idx} className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
                   <select
-                    value={v}
+                    value={localizeWilaya(v, lang)}
                     onChange={(e) => updateVia(idx, e.target.value)}
                     className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 focus:border-amber-500 text-white text-xs outline-none"
                   >
@@ -178,7 +178,7 @@ export const AvailableDriverModal: React.FC<AvailableDriverModalProps> = ({
               {isAr ? '🎯 إلى (الوجهة النهائية):' : '🎯 Vers (Destination finale) :'}
             </label>
             <select
-              value={to}
+              value={localizeWilaya(to, lang)}
               onChange={(e) => setTo(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-amber-500 text-white text-sm outline-none"
             >

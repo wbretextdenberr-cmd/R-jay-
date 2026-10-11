@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { ReturnTrip, VehicleCategory } from '../types';
 import { WILAYAS, ALGERIAN_HIGHWAYS, VEHICLE_CATEGORIES_INFO } from '../locales/translations';
+import { localizeWilaya } from '../services/roadNetwork';
 
 interface DriverTripModalProps {
   isOpen: boolean;
@@ -201,7 +202,7 @@ export const DriverTripModal: React.FC<DriverTripModalProps> = ({
                   {isAr ? 'من (الانطلاق):' : 'De (Départ) :'}
                 </label>
                 <select
-                  value={fromWilaya}
+                  value={localizeWilaya(fromWilaya, lang)}
                   onChange={(e) => setFromWilaya(e.target.value)}
                   className="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs outline-none"
                 >
@@ -218,7 +219,7 @@ export const DriverTripModal: React.FC<DriverTripModalProps> = ({
                   {isAr ? 'إلى (الوصول/العودة):' : 'Vers (Arrivée) :'}
                 </label>
                 <select
-                  value={toWilaya}
+                  value={localizeWilaya(toWilaya, lang)}
                   onChange={(e) => setToWilaya(e.target.value)}
                   className="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs outline-none"
                 >
