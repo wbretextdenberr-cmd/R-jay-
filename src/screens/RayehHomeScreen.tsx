@@ -15,6 +15,7 @@ import {
 import { ReturnTrip, VehicleCategory, User, UserRole, Language, AvailableDriver } from '../types';
 import { AutomotiveGridButtons } from '../components/AutomotiveGridButtons';
 import { WILAYAS, VEHICLE_CATEGORIES_INFO } from '../locales/translations';
+import { localizeWilaya, wilayaCode } from '../services/roadNetwork';
 import {
   matchAvailableDriversDetailed,
   matchReturnTrips,
@@ -205,7 +206,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
               {isAr ? 'من (موقع حمولتك):' : 'Départ (votre position) :'}
             </label>
             <select
-              value={pickupWilaya}
+              value={localizeWilaya(pickupWilaya, lang)}
               onChange={(e) => setPickupWilaya(e.target.value)}
               className="w-full px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs outline-none"
             >
@@ -222,7 +223,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
               {isAr ? 'إلى (وجهة التوصيل):' : 'Destination :'}
             </label>
             <select
-              value={destinationWilaya}
+              value={localizeWilaya(destinationWilaya, lang)}
               onChange={(e) => setDestinationWilaya(e.target.value)}
               className="w-full px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs outline-none"
             >
@@ -350,7 +351,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
           <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
             <Truck className="w-8 h-8 text-slate-600 mx-auto" />
             <p className="text-xs text-slate-400">
-              {pickupWilaya === destinationWilaya
+              {wilayaCode(pickupWilaya) === wilayaCode(destinationWilaya)
                 ? (isAr ? 'اختر ولايتين مختلفتين للانطلاق والوجهة.' : 'Choisissez deux wilayas différentes.')
                 : isAr 
                   ? 'لا يوجد ناقل عائد يمر بنقطة انطلاقك ثم وجهتك حالياً.' 
