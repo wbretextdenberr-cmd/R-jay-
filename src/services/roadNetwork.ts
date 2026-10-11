@@ -108,6 +108,12 @@ export function wilayaName(code: string, lang: 'ar' | 'fr' = 'ar'): string {
   return lang === 'ar' ? w.nameAr : w.nameFr;
 }
 
+/** يعيد اسم الولاية بلغة العرض الحالية (أياً كانت لغة الاسم المخزّن)، أو الاسم كما هو إن لم يُعرف */
+export function localizeWilaya(name: string, lang: 'ar' | 'fr' = 'ar'): string {
+  const c = wilayaCode(name);
+  return c ? wilayaName(c, lang) : name;
+}
+
 // =====================================================================
 // الرسم البياني + أقصر مسار (Dijkstra)
 // =====================================================================
