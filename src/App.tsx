@@ -13,6 +13,7 @@ import { RayehHomeScreen } from './screens/RayehHomeScreen';
 import { RayehRouteMapScreen } from './screens/RayehRouteMapScreen';
 import { RayehCallsScreen } from './screens/RayehCallsScreen';
 import { RayehProfileScreen } from './screens/RayehProfileScreen';
+import { AuthScreen } from './screens/AuthScreen';
 
 import { 
   User, 
@@ -24,7 +25,8 @@ import {
   VehicleCategory,
   AvailableDriver
 } from './types';
-import { api } from './services/api';
+import { api, EMPTY_VERIFICATION } from './services/api';
+import { auth } from './services/auth';
 import { IMG } from './assets';
 import { isDriverAvailable } from './services/routeMatcher';
 
@@ -34,40 +36,23 @@ a[href^="tel:"].font-mono{direction:ltr;unicode-bidi:isolate;text-align:center}
 p.font-mono.text-emerald-400.mt-0\\.5{direction:ltr;unicode-bidi:isolate;width:fit-content}
 `;
 
-export default function App() {
-  const [lang, setLang] = useState<Language>('ar');
-  const [currentRole, setCurrentRole] = useState<UserRole>('client');
-  const [currentTab, setCurrentTab] = useState<string>('home');
+interface MainAppProps {
+  user: User;
+  lang: Language;
+  setLang: (l: Language) => void;
+  onUserUpdate: (patch: Partial<Pick<User, 'name' | 'wilaya' | 'email' | 'isPremium' | 'premiumPlan'>>) => void;
+  onLogout: () => void;
+  onDeleteAccount: (password: string) => Promise<void>;
+}
 
-  const [currentUser, setCurrentUser] = useState<User>({
-    id: 'usr_sofiane',
-    name: 'سفيان دراجي',
-    phone: '0550 12 34 56',
-    email: 'sofiane.transport@algeria.dz',
-    role: 'client',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80',
-    wilaya: 'الجزائر العاصمة',
-    isPremium: false,
-    createdAt: '2026-01-20T10:00:00Z'
-  });
+function MainApp({ user: currentUser, lang, setLang, onUserUpdate, onLogout, onDeleteAccount }: MainAppProps) {
+  const currentRole: UserRole = currentUser.role;
+  const [currentTab, setCurrentTab] = useState<string>('home');
 
   const [returnTrips, setReturnTrips] = useState<ReturnTrip[]>([]);
   const [callRequests, setCallRequests] = useState<CallRequest[]>([]);
   const [availableDrivers, setAvailableDrivers] = useState<AvailableDriver[]>([]);
-  const [driverVerification, setDriverVerification] = useState<DriverVerification>({
-    ninNumber: '119850241852401',
-    driverLicenseNumber: '08541296/16',
-    licenseIssueDate: '2020-04-12',
-    transportPermitNumber: 'RN-ALG-2024-998',
-    idCardPhoto: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=400&q=80',
-    licensePhoto: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=400&q=80',
-    transportPermitPhoto: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=400&q=80',
-    vehiclePhoto: IMG.portechar,
-    trailerPhoto: IMG.freight,
-    status: 'VERIFIED',
-    reliabilityScore: 98,
-    completedTrips: 47
-  });
+  const [driverVerification, setDriverVerification] = useState<DriverVerification>({ ...EMPTY_VERIFICATION });
 
   const [isSmartSuggestOpen, setIsSmartSuggestOpen] = useState(false);
   const [isDriverTripModalOpen, setIsDriverTripModalOpen] = useState(false);
@@ -76,11 +61,22 @@ export default function App() {
   const [isAvailableModalOpen, setIsAvailableModalOpen] = useState(false);
   const [selectedTripForCall, setSelectedTripForCall] = useState<ReturnTrip | null>(null);
   const [suggestion, setSuggestion] = useState<{ category: VehicleCategory; nonce: number } | null>(null);
+  const [verificationRequired, setVerificationRequired] = useState(false);
 
-  useEffect(() => {
-    document.documentElement.lang = lang;
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-  }, [lang]);
+  // السائق لا ينشر رحلة ولا يعلن توفره قبل أن يرسل وثائقه
+  const guardDriverAction = (action: () => void) => {
+    if (currentRole === 'driver' && driverVerification.status === 'NOT_SUBMITTED') {
+      setVerificationRequired(true);
+      setIsVerificationModalOpen(true);
+      return;
+    }
+    action();
+  };
+
+  const handleSaveVerification = async (verif: DriverVerification) => {
+    const saved = await api.saveDriverVerification(currentUser.id, verif);
+    setDriverVerification(saved);
+  };
 
   useEffect(() => {
     const initData = async () => {
@@ -190,7 +186,6 @@ export default function App() {
       <RayehTopBar
         user={currentUser}
         currentRole={currentRole}
-        onSwitchRole={(newRole) => setCurrentRole(newRole)}
         lang={lang}
         onToggleLang={() => setLang(lang === 'ar' ? 'fr' : 'ar')}
         onOpenProfile={() => setCurrentTab('profile')}
@@ -206,8 +201,8 @@ export default function App() {
             availableDrivers={availableDrivers}
             activeDriverTrip={activeDriverTrip}
             onOpenSmartSuggest={() => setIsSmartSuggestOpen(true)}
-            onOpenDriverTripModal={() => setIsDriverTripModalOpen(true)}
-            onOpenAvailableModal={() => setIsAvailableModalOpen(true)}
+            onOpenDriverTripModal={() => guardDriverAction(() => setIsDriverTripModalOpen(true))}
+            onOpenAvailableModal={() => guardDriverAction(() => setIsAvailableModalOpen(true))}
             onOpenCallModal={(trip) => handleStartCall(trip)}
             onOpenPremiumModal={() => setIsPremiumModalOpen(true)}
             onOpenVerificationModal={() => setIsVerificationModalOpen(true)}
@@ -234,7 +229,8 @@ export default function App() {
             lang={lang}
             currentAvailability={currentAvailability}
             onToggleLang={() => setLang(lang === 'ar' ? 'fr' : 'ar')}
-            onSwitchRole={(newRole) => setCurrentRole(newRole)}
+            onLogout={onLogout}
+            onDeleteAccount={onDeleteAccount}
             onOpenVerificationModal={() => setIsVerificationModalOpen(true)}
             onOpenPremiumModal={() => setIsPremiumModalOpen(true)}
             onSetUnavailable={handleSetUnavailable}
@@ -307,10 +303,15 @@ export default function App() {
 
       <DriverVerificationModal
         isOpen={isVerificationModalOpen}
-        onClose={() => setIsVerificationModalOpen(false)}
+        onClose={() => {
+          setIsVerificationModalOpen(false);
+          setVerificationRequired(false);
+        }}
         lang={lang}
         driverId={currentUser.id}
-        onSaved={(verif) => setDriverVerification(verif)}
+        existing={driverVerification}
+        required={verificationRequired}
+        onSaved={handleSaveVerification}
       />
 
       <ClientPremiumModal
@@ -318,10 +319,82 @@ export default function App() {
         onClose={() => setIsPremiumModalOpen(false)}
         lang={lang}
         isPremium={!!currentUser.isPremium}
-        onActivatePremium={() => {
-          setCurrentUser({ ...currentUser, isPremium: true });
-        }}
+        onActivatePremium={() => onUserUpdate({ isPremium: true })}
       />
     </CockpitFrame>
+  );
+}
+
+export default function App() {
+  const [lang, setLang] = useState<Language>('ar');
+  const [user, setUser] = useState<User | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  }, [lang]);
+
+  useEffect(() => {
+    let alive = true;
+    auth
+      .getSession()
+      .then(u => {
+        if (alive) setUser(u);
+      })
+      .catch(() => {})
+      .then(() => {
+        if (alive) setReady(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const toggleLang = () => setLang(lang === 'ar' ? 'fr' : 'ar');
+
+  const handleUserUpdate = async (
+    patch: Partial<Pick<User, 'name' | 'wilaya' | 'email' | 'isPremium' | 'premiumPlan'>>
+  ) => {
+    if (!user) return;
+    try {
+      setUser(await auth.updateProfile(user.id, patch));
+    } catch (_) {}
+  };
+
+  const handleLogout = async () => {
+    await auth.signOut();
+    setUser(null);
+  };
+
+  const handleDeleteAccount = async (password: string) => {
+    if (!user) return;
+    await auth.deleteAccount(user.id, password);
+    await api.deleteUserData(user.id);
+    setUser(null);
+  };
+
+  if (!ready) {
+    return <div className="min-h-screen w-full bg-slate-950" />;
+  }
+
+  if (!user) {
+    return (
+      <CockpitFrame lang={lang}>
+        <AuthScreen lang={lang} onToggleLang={toggleLang} onAuthenticated={setUser} />
+      </CockpitFrame>
+    );
+  }
+
+  return (
+    <MainApp
+      key={user.id}
+      user={user}
+      lang={lang}
+      setLang={setLang}
+      onUserUpdate={handleUserUpdate}
+      onLogout={handleLogout}
+      onDeleteAccount={handleDeleteAccount}
+    />
   );
 }
