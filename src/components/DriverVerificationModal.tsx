@@ -1,80 +1,196 @@
-import React, { useState } from 'react';
-import { 
-  ShieldCheck, 
-  X, 
-  Upload, 
-  CheckCircle2, 
-  Lock, 
-  FileText, 
-  Truck, 
-  Camera, 
-  AlertCircle 
-} from 'lucide-react';
-import { DriverVerification, VehicleCategory } from '../types';
-import { VEHICLE_CATEGORIES_INFO } from '../locales/translations';
-import { IMG } from '../assets';
+import React, { useEffect, useState } from 'react';
+import { ShieldCheck, X, Lock, Camera, AlertCircle } from 'lucide-react';
+import { DriverVerification } from '../types';
+import { compressImage } from '../services/helpers';
 
 interface DriverVerificationModalProps {
   isOpen: boolean;
   onClose: () => void;
   lang: 'ar' | 'fr';
   driverId: string;
-  onSaved: (verif: DriverVerification) => void;
+  existing: DriverVerification;
+  /** true عندما فُتحت النافذة لأن السائق حاول نشر رحلة قبل إرسال وثائقه */
+  required?: boolean;
+  onSaved: (verif: DriverVerification) => Promise<void> | void;
 }
+
+interface PhotosState {
+  idCard: string;
+  license: string;
+  permit: string;
+  vehicle: string;
+  trailer: string;
+}
+
+const EMPTY_PHOTOS: PhotosState = { idCard: '', license: '', permit: '', vehicle: '', trailer: '' };
+
+const inputCls =
+  'w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono text-xs focus:border-emerald-500 outline-none';
+
+const PhotoField: React.FC<{
+  label: string;
+  value: string;
+  busy: boolean;
+  isAr: boolean;
+  onPick: (file: File) => void;
+  onClear: () => void;
+}> = ({ label, value, busy, isAr, onPick, onClear }) => (
+  <div className={`p-2.5 rounded-xl bg-slate-950 border ${value ? 'border-emerald-500/40' : 'border-slate-800'} space-y-1.5`}>
+    <span className="text-[11px] text-slate-300 block truncate">{label}</span>
+    {value ? (
+      <div className="relative">
+        <img src={value} alt={label} className="w-full h-20 object-cover rounded-lg" />
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label={isAr ? 'حذف الصورة' : 'Supprimer la photo'}
+          className="absolute top-1 end-1 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      </div>
+    ) : (
+      <label
+        className={`flex items-center justify-center gap-1.5 h-20 rounded-lg border border-dashed border-slate-700 text-[11px] text-emerald-400 cursor-pointer ${
+          busy ? 'opacity-50 pointer-events-none' : ''
+        }`}
+      >
+        <Camera className="w-4 h-4" />
+        <span>{isAr ? 'رفع صورة' : 'Ajouter une photo'}</span>
+        <input
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files && e.target.files[0];
+            if (f) onPick(f);
+            e.target.value = '';
+          }}
+        />
+      </label>
+    )}
+  </div>
+);
 
 export const DriverVerificationModal: React.FC<DriverVerificationModalProps> = ({
   isOpen,
   onClose,
   lang,
-  driverId,
+  existing,
+  required,
   onSaved
 }) => {
   const isAr = lang === 'ar';
 
-  const [ninNumber, setNinNumber] = useState('119850241852401');
-  const [driverLicenseNumber, setDriverLicenseNumber] = useState('08541296/16');
-  const [licenseIssueDate, setLicenseIssueDate] = useState('2020-04-12');
-  const [transportPermitNumber, setTransportPermitNumber] = useState('RN-ALG-2024-998');
-  
-  const [selectedCategory, setSelectedCategory] = useState<VehicleCategory>('PORTE_CHAR');
-  const [vehicleName, setVehicleName] = useState('Mercedes-Benz Actros 3340');
-  const [hasTrailer, setHasTrailer] = useState(true);
+  const [ninNumber, setNinNumber] = useState('');
+  const [driverLicenseNumber, setDriverLicenseNumber] = useState('');
+  const [licenseIssueDate, setLicenseIssueDate] = useState('');
+  const [transportPermitNumber, setTransportPermitNumber] = useState('');
+  const [hasTrailer, setHasTrailer] = useState(false);
+  const [photos, setPhotos] = useState<PhotosState>(EMPTY_PHOTOS);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
 
-  const [idUploaded, setIdUploaded] = useState(true);
-  const [licenseUploaded, setLicenseUploaded] = useState(true);
-  const [permitUploaded, setPermitUploaded] = useState(true);
-  const [vehiclePhotoUploaded, setVehiclePhotoUploaded] = useState(true);
-  const [trailerPhotoUploaded, setTrailerPhotoUploaded] = useState(true);
+  // عند كل فتح للنافذة: نملأ الحقول بما حُفظ سابقاً (فارغة لسائق جديد)
+  useEffect(() => {
+    if (!isOpen) return;
+    setNinNumber(existing.ninNumber);
+    setDriverLicenseNumber(existing.driverLicenseNumber);
+    setLicenseIssueDate(existing.licenseIssueDate);
+    setTransportPermitNumber(existing.transportPermitNumber);
+    setHasTrailer(!!existing.trailerPhoto);
+    setPhotos({
+      idCard: existing.idCardPhoto,
+      license: existing.licensePhoto,
+      permit: existing.transportPermitPhoto,
+      vehicle: existing.vehiclePhoto,
+      trailer: existing.trailerPhoto || ''
+    });
+    setError(null);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const pick = async (key: keyof PhotosState, file: File) => {
+    setPhotoBusy(true);
+    setError(null);
+    try {
+      const url = await compressImage(file);
+      setPhotos(p => ({ ...p, [key]: url }));
+    } catch (_) {
+      setError(isAr ? 'تعذّر قراءة الصورة، جرّب صورة أخرى.' : "Impossible de lire l'image, essayez-en une autre.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const clear = (key: keyof PhotosState) => setPhotos(p => ({ ...p, [key]: '' }));
+
+  const validate = (): string | null => {
+    if (!/^\d{18}$/.test(ninNumber.trim())) {
+      return isAr ? 'رقم التعريف الوطني (NIN) يتكون من 18 رقماً.' : 'Le NIN comporte 18 chiffres.';
+    }
+    if (!driverLicenseNumber.trim()) return isAr ? 'أدخل رقم رخصة السياقة.' : 'Saisissez le n° de permis.';
+    if (!licenseIssueDate || new Date(licenseIssueDate).getTime() > Date.now()) {
+      return isAr ? 'تاريخ إصدار الرخصة غير صالح.' : "Date de délivrance invalide.";
+    }
+    if (!transportPermitNumber.trim()) return isAr ? 'أدخل رقم رخصة النقل.' : 'Saisissez le n° de licence de transport.';
+    if (!photos.idCard || !photos.license || !photos.permit || !photos.vehicle) {
+      return isAr
+        ? 'ارفع صور: بطاقة التعريف، رخصة السياقة، رخصة النقل، والعربة.'
+        : "Ajoutez les photos : carte d'identité, permis, licence et camion.";
+    }
+    if (hasTrailer && !photos.trailer) return isAr ? 'ارفع صورة المقطورة.' : 'Ajoutez la photo de la remorque.';
+    return null;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
+    const problem = validate();
+    if (problem) {
+      setError(problem);
+      return;
+    }
+
     const verif: DriverVerification = {
-      ninNumber,
-      driverLicenseNumber,
+      ninNumber: ninNumber.trim(),
+      driverLicenseNumber: driverLicenseNumber.trim(),
       licenseIssueDate,
-      transportPermitNumber,
-      idCardPhoto: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=400&q=80',
-      licensePhoto: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=400&q=80',
-      transportPermitPhoto: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=400&q=80',
-      vehiclePhoto: IMG.portechar,
-      trailerPhoto: hasTrailer ? IMG.freight : undefined,
-      status: 'VERIFIED',
-      reliabilityScore: 99,
-      completedTrips: 48
+      transportPermitNumber: transportPermitNumber.trim(),
+      idCardPhoto: photos.idCard,
+      licensePhoto: photos.license,
+      transportPermitPhoto: photos.permit,
+      vehiclePhoto: photos.vehicle,
+      trailerPhoto: hasTrailer ? photos.trailer : undefined,
+      status: 'UNDER_REVIEW',
+      reliabilityScore: existing.reliabilityScore,
+      completedTrips: existing.completedTrips
     };
-    onSaved(verif);
-    onClose();
+
+    setBusy(true);
+    setError(null);
+    try {
+      await onSaved(verif);
+      onClose();
+    } catch (_) {
+      setError(
+        isAr
+          ? 'تعذّر الحفظ: مساحة التخزين على الجهاز ممتلئة. جرّب صوراً أصغر.'
+          : "Échec de l'enregistrement : stockage plein. Essayez des photos plus petites."
+      );
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-      <div 
+      <div
         className="w-full max-w-md rounded-3xl bg-[#141822] border border-slate-800 p-5 shadow-2xl flex flex-col max-h-[92vh] overflow-y-auto no-scrollbar"
         dir={isAr ? 'rtl' : 'ltr'}
       >
-        {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-emerald-950/80 border border-emerald-500/60 flex items-center justify-center text-emerald-400">
@@ -91,38 +207,48 @@ export const DriverVerificationModal: React.FC<DriverVerificationModalProps> = (
           </div>
           <button
             onClick={onClose}
+            aria-label={isAr ? 'إغلاق' : 'Fermer'}
             className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Security Notice Guarantee (Mandatory by specification) */}
+        {required && (
+          <div className="mt-3 p-3 rounded-2xl bg-amber-950/50 border border-amber-500/50 flex items-start gap-2 text-xs text-amber-200 font-semibold leading-relaxed">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>
+              {isAr
+                ? 'أرسل وثائقك أولاً لتتمكن من نشر رحلاتك والإعلان عن توفرك.'
+                : "Envoyez d'abord vos documents pour publier vos trajets et votre disponibilité."}
+            </span>
+          </div>
+        )}
+
         <div className="my-3 p-3 rounded-2xl bg-slate-900 border border-emerald-500/40 flex items-center gap-2.5">
           <Lock className="w-5 h-5 text-emerald-400 shrink-0" />
           <p className="text-xs font-bold text-emerald-300 leading-snug">
-            {isAr 
-              ? 'كل هذه المعلومات تُخزّن في الخادم لحمايتك وحماية الزبون 🔒' 
-              : 'Toutes ces informations sont stockées sur le serveur pour votre protection et celle du client 🔒'}
+            {isAr
+              ? 'في هذه النسخة التجريبية تُحفظ بياناتك على جهازك فقط 🔒'
+              : 'Dans cette version de test, vos données sont enregistrées uniquement sur votre appareil 🔒'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* National Identification Number (NIN) */}
           <div>
             <label className="block text-xs font-bold text-slate-200 mb-1">
-              {isAr ? 'رقم التعريف الوطني (NIN):' : 'Numéro d\'Identification Nationale (NIN) :'}
+              {isAr ? 'رقم التعريف الوطني (NIN) - 18 رقماً:' : "Numéro d'Identification Nationale (NIN) - 18 chiffres :"}
             </label>
             <input
               type="text"
+              inputMode="numeric"
               value={ninNumber}
-              onChange={(e) => setNinNumber(e.target.value)}
-              required
-              className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono text-xs focus:border-emerald-500 outline-none"
+              onChange={(e) => setNinNumber(e.target.value.replace(/\D/g, '').slice(0, 18))}
+              dir="ltr"
+              className={inputCls}
             />
           </div>
 
-          {/* Driving License Number & Issue Date */}
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-xs font-bold text-slate-200 mb-1">
@@ -132,8 +258,8 @@ export const DriverVerificationModal: React.FC<DriverVerificationModalProps> = (
                 type="text"
                 value={driverLicenseNumber}
                 onChange={(e) => setDriverLicenseNumber(e.target.value)}
-                required
-                className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono text-xs focus:border-emerald-500 outline-none"
+                dir="ltr"
+                className={inputCls}
               />
             </div>
             <div>
@@ -144,13 +270,11 @@ export const DriverVerificationModal: React.FC<DriverVerificationModalProps> = (
                 type="date"
                 value={licenseIssueDate}
                 onChange={(e) => setLicenseIssueDate(e.target.value)}
-                required
                 className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:border-emerald-500 outline-none"
               />
             </div>
           </div>
 
-          {/* Transport Permit */}
           <div>
             <label className="block text-xs font-bold text-slate-200 mb-1">
               {isAr ? 'رقم رخصة النقل المهنية:' : 'N° Licence de transport :'}
@@ -159,78 +283,90 @@ export const DriverVerificationModal: React.FC<DriverVerificationModalProps> = (
               type="text"
               value={transportPermitNumber}
               onChange={(e) => setTransportPermitNumber(e.target.value)}
-              required
-              className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white font-mono text-xs focus:border-emerald-500 outline-none"
+              dir="ltr"
+              className={inputCls}
             />
           </div>
 
-          {/* Vehicle Category Selection */}
-          <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-2">
-            <span className="text-xs font-bold text-slate-200 block">
-              {isAr ? 'تسجيل العربة (الصنف والاسم):' : 'Enregistrement du véhicule :'}
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value as VehicleCategory)}
-                className="w-full px-2 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs outline-none"
-              >
-                {Object.entries(VEHICLE_CATEGORIES_INFO).map(([k, v]) => (
-                  <option key={k} value={k}>{isAr ? v.nameAr : v.nameFr}</option>
-                ))}
-              </select>
-              <input
-                type="text"
-                value={vehicleName}
-                onChange={(e) => setVehicleName(e.target.value)}
-                placeholder={isAr ? 'اسم الشاحنة' : 'Nom du camion'}
-                className="w-full px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs outline-none"
-              />
-            </div>
+          <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hasTrailer}
+              onChange={(e) => setHasTrailer(e.target.checked)}
+              className="w-4 h-4 accent-emerald-500 rounded"
+            />
+            <span>{isAr ? 'عربتي بمقطورة (Semi-remorque أو Porte-char)' : "Mon véhicule a une remorque / porte-char"}</span>
+          </label>
 
-            <label className="flex items-center gap-2 pt-1 text-xs text-slate-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={hasTrailer}
-                onChange={(e) => setHasTrailer(e.target.checked)}
-                className="w-4 h-4 accent-emerald-500 rounded"
-              />
-              <span>{isAr ? 'يوجد مقطورة (Semi-remorque أو Porte-char)' : 'Dispose d\'une remorque / porte-char'}</span>
-            </label>
-          </div>
-
-          {/* Required Upload Badges */}
           <div className="space-y-2">
             <span className="text-xs font-bold text-slate-300 block">
-              {isAr ? 'الوثائق المصورة المرفوعة:' : 'Documents et photos vérifiés :'}
+              {isAr ? 'الوثائق والصور المطلوبة:' : 'Documents et photos requis :'}
             </span>
             <div className="grid grid-cols-2 gap-2">
-              <div className="p-2.5 rounded-xl bg-slate-950 border border-emerald-500/40 flex items-center justify-between text-[11px] text-slate-300">
-                <span className="truncate">{isAr ? 'بطاقة التعريف' : 'Carte d\'identité'}</span>
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              </div>
-              <div className="p-2.5 rounded-xl bg-slate-950 border border-emerald-500/40 flex items-center justify-between text-[11px] text-slate-300">
-                <span className="truncate">{isAr ? 'رخصة السياقة' : 'Permis de conduire'}</span>
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              </div>
-              <div className="p-2.5 rounded-xl bg-slate-950 border border-emerald-500/40 flex items-center justify-between text-[11px] text-slate-300">
-                <span className="truncate">{isAr ? 'رخصة النقل' : 'Licence transport'}</span>
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              </div>
-              <div className="p-2.5 rounded-xl bg-slate-950 border border-emerald-500/40 flex items-center justify-between text-[11px] text-slate-300">
-                <span className="truncate">{isAr ? 'صورة العربة' : 'Photo du camion'}</span>
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              </div>
+              <PhotoField
+                label={isAr ? 'بطاقة التعريف' : "Carte d'identité"}
+                value={photos.idCard}
+                busy={photoBusy}
+                isAr={isAr}
+                onPick={(f) => pick('idCard', f)}
+                onClear={() => clear('idCard')}
+              />
+              <PhotoField
+                label={isAr ? 'رخصة السياقة' : 'Permis de conduire'}
+                value={photos.license}
+                busy={photoBusy}
+                isAr={isAr}
+                onPick={(f) => pick('license', f)}
+                onClear={() => clear('license')}
+              />
+              <PhotoField
+                label={isAr ? 'رخصة النقل' : 'Licence transport'}
+                value={photos.permit}
+                busy={photoBusy}
+                isAr={isAr}
+                onPick={(f) => pick('permit', f)}
+                onClear={() => clear('permit')}
+              />
+              <PhotoField
+                label={isAr ? 'صورة العربة' : 'Photo du camion'}
+                value={photos.vehicle}
+                busy={photoBusy}
+                isAr={isAr}
+                onPick={(f) => pick('vehicle', f)}
+                onClear={() => clear('vehicle')}
+              />
+              {hasTrailer && (
+                <PhotoField
+                  label={isAr ? 'صورة المقطورة' : 'Photo de la remorque'}
+                  value={photos.trailer}
+                  busy={photoBusy}
+                  isAr={isAr}
+                  onPick={(f) => pick('trailer', f)}
+                  onClear={() => clear('trailer')}
+                />
+              )}
             </div>
           </div>
+
+          {error && (
+            <div className="p-2.5 rounded-xl bg-red-950/60 border border-red-500/50 text-[12px] text-red-300 font-semibold">
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"
-            className="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-98 transition-all cursor-pointer"
+            disabled={busy || photoBusy}
+            className="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 text-slate-950 font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer"
           >
             <ShieldCheck className="w-4 h-4 stroke-[3]" />
-            <span>{isAr ? 'حفظ وتأكيد التوثيق والأمان' : 'Valider mon dossier vérifié'}</span>
+            <span>{isAr ? 'إرسال الوثائق للمراجعة' : 'Envoyer mon dossier pour vérification'}</span>
           </button>
+          <p className="text-[10px] text-slate-500 text-center leading-relaxed">
+            {isAr
+              ? 'تبقى حالتك «قيد المراجعة» إلى أن تُراجَع وثائقك.'
+              : 'Votre statut reste « en cours de vérification » jusqu\'à la revue de vos documents.'}
+          </p>
         </form>
       </div>
     </div>

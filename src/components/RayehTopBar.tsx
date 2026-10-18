@@ -10,11 +10,11 @@ import {
   Package
 } from 'lucide-react';
 import { User, UserRole, Language } from '../types';
+import { makeAvatar } from '../services/helpers';
 
 interface RayehTopBarProps {
   user: User;
   currentRole: UserRole;
-  onSwitchRole: (role: UserRole) => void;
   lang: Language;
   onToggleLang: () => void;
   onOpenProfile: () => void;
@@ -23,7 +23,6 @@ interface RayehTopBarProps {
 export const RayehTopBar: React.FC<RayehTopBarProps> = ({
   user,
   currentRole,
-  onSwitchRole,
   lang,
   onToggleLang,
   onOpenProfile
@@ -51,29 +50,13 @@ export const RayehTopBar: React.FC<RayehTopBarProps> = ({
             <span className="text-[10px] text-slate-400 font-mono tracking-wider">Rayeh Jay</span>
           </div>
 
-          <div className="mt-1 flex items-center bg-slate-900/90 p-0.5 rounded-full border border-slate-800 text-[10px] font-bold">
-            <button
-              onClick={() => onSwitchRole('client')}
-              className={`px-2.5 py-0.5 rounded-full transition-all flex items-center gap-1 ${
-                currentRole === 'client'
-                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Package className="w-3 h-3" />
-              <span>{lang === 'ar' ? 'زبون (حمولة)' : 'Client'}</span>
-            </button>
-            <button
-              onClick={() => onSwitchRole('driver')}
-              className={`px-2.5 py-0.5 rounded-full transition-all flex items-center gap-1 ${
-                currentRole === 'driver'
-                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Truck className="w-3 h-3" />
-              <span>{lang === 'ar' ? 'سائق (ناقل)' : 'Chauffeur'}</span>
-            </button>
+          <div className="mt-1 flex items-center gap-1 bg-slate-900/90 px-2.5 py-0.5 rounded-full border border-slate-800 text-[10px] font-bold text-emerald-400">
+            {currentRole === 'driver' ? <Truck className="w-3 h-3" /> : <Package className="w-3 h-3" />}
+            <span>
+              {currentRole === 'driver'
+                ? (lang === 'ar' ? 'سائق (ناقل)' : 'Chauffeur')
+                : (lang === 'ar' ? 'زبون (حمولة)' : 'Client')}
+            </span>
           </div>
         </div>
 
@@ -93,7 +76,7 @@ export const RayehTopBar: React.FC<RayehTopBarProps> = ({
             title={lang === 'ar' ? 'الملف الشخصي والتوثيق' : 'Profil & Vérification'}
           >
             <img
-              src={user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80'}
+              src={user.avatar || makeAvatar(user.name)}
               alt={user.name}
               className="w-full h-full object-cover rounded-full"
               referrerPolicy="no-referrer"
@@ -133,8 +116,8 @@ export const RayehTopBar: React.FC<RayehTopBarProps> = ({
                 <Lock className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                 <p className="font-semibold text-emerald-200">
                   {lang === 'ar' 
-                    ? 'كل هذه المعلومات تُخزّن في الخادم لحمايتك وحماية الزبون 🔒'
-                    : 'Toutes ces informations sont stockées sur le serveur pour votre protection et celle du client 🔒'}
+                    ? 'في هذه النسخة التجريبية تُحفظ بياناتك على جهازك فقط 🔒'
+                    : 'Dans cette version de test, vos données sont enregistrées uniquement sur votre appareil 🔒'}
                 </p>
               </div>
 

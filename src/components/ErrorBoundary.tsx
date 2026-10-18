@@ -56,7 +56,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
         <div style={{ fontSize: 40 }}>⚠️</div>
         <h1 style={{ fontSize: 18, fontWeight: 800 }}>حدث خطأ غير متوقع / Une erreur est survenue</h1>
         <p style={{ fontSize: 12, color: '#94a3b8', maxWidth: 320, lineHeight: 1.7 }}>
-          يمكنك إعادة المحاولة. إن تكرر الخطأ فصفّر البيانات المحلية (ستُمسح الرحلات والمسارات المحفوظة على هذا الجهاز).
+          يمكنك إعادة المحاولة. إن تكرر الخطأ فصفّر البيانات المحلية، لكن ذلك يمسح الحسابات والرحلات والمسارات المحفوظة على هذا الجهاز نهائياً.
         </p>
         <code
           style={{
