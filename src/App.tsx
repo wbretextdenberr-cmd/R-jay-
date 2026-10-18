@@ -75,6 +75,7 @@ export default function App() {
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
   const [isAvailableModalOpen, setIsAvailableModalOpen] = useState(false);
   const [selectedTripForCall, setSelectedTripForCall] = useState<ReturnTrip | null>(null);
+  const [suggestion, setSuggestion] = useState<{ category: VehicleCategory; nonce: number } | null>(null);
 
   useEffect(() => {
     document.documentElement.lang = lang;
@@ -210,6 +211,7 @@ export default function App() {
             onOpenCallModal={(trip) => handleStartCall(trip)}
             onOpenPremiumModal={() => setIsPremiumModalOpen(true)}
             onOpenVerificationModal={() => setIsVerificationModalOpen(true)}
+            suggestion={suggestion}
           />
         ) : currentTab === 'route_map' ? (
           <RayehRouteMapScreen
@@ -251,7 +253,10 @@ export default function App() {
         isOpen={isSmartSuggestOpen}
         onClose={() => setIsSmartSuggestOpen(false)}
         lang={lang}
-        onApplyCategory={(cat) => {}}
+        onApplyCategory={(cat) => {
+          setSuggestion({ category: cat, nonce: Date.now() });
+          setCurrentTab('home');
+        }}
       />
 
       <DriverTripModal
