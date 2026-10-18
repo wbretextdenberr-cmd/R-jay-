@@ -37,7 +37,7 @@ export interface DriverVerification {
   transportPermitPhoto: string;
   vehiclePhoto: string;
   trailerPhoto?: string;
-  status: 'VERIFIED' | 'UNDER_REVIEW' | 'REJECTED';
+  status: 'NOT_SUBMITTED' | 'UNDER_REVIEW' | 'VERIFIED' | 'REJECTED';
   reliabilityScore: number;
   completedTrips: number;
 }
