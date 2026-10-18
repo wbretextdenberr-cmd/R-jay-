@@ -9,9 +9,11 @@ import {
   Coins, 
   ShieldCheck, 
   ArrowRight,
-  Package
+  Package,
+  MessageCircle
 } from 'lucide-react';
 import { CallRequest, UserRole, Language } from '../types';
+import { whatsappUrl, clientToDriverMessage } from '../services/helpers';
 
 interface RayehCallsScreenProps {
   calls: CallRequest[];
@@ -144,13 +146,25 @@ export const RayehCallsScreen: React.FC<RayehCallsScreenProps> = ({
                         {call.driverPhone}
                       </a>
                     </div>
-                    <a
-                      href={`tel:${call.driverPhone}`}
-                      className="py-2 px-3.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs flex items-center gap-1"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      <span>{isAr ? 'اتصل' : 'Appeler'}</span>
-                    </a>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={whatsappUrl(call.driverPhone, clientToDriverMessage(isAr, call.pickupWilaya, call.dropoffWilaya))}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="WhatsApp"
+                        className="py-2 px-3 rounded-xl bg-[#25D366]/15 text-[#25D366] border border-[#25D366]/40 font-bold text-xs flex items-center gap-1"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span>{isAr ? 'واتساب' : 'WhatsApp'}</span>
+                      </a>
+                      <a
+                        href={`tel:${call.driverPhone}`}
+                        className="py-2 px-3.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs flex items-center gap-1"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        <span>{isAr ? 'اتصل' : 'Appeler'}</span>
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>

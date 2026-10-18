@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Search, 
   Sparkles, 
@@ -10,17 +10,48 @@ import {
   AlertCircle,
   PlusCircle,
   Crown,
-  Zap
+  Zap,
+  Star,
+  X,
+  MessageCircle,
+  Share2
 } from 'lucide-react';
 import { ReturnTrip, VehicleCategory, User, UserRole, Language, AvailableDriver } from '../types';
 import { AutomotiveGridButtons } from '../components/AutomotiveGridButtons';
 import { WILAYAS, VEHICLE_CATEGORIES_INFO } from '../locales/translations';
-import { localizeWilaya, wilayaCode } from '../services/roadNetwork';
+import { localizeWilaya, wilayaCode, wilayaName, segmentDistanceKm } from '../services/roadNetwork';
 import {
   matchAvailableDriversDetailed,
   matchReturnTrips,
   MatchKind
 } from '../services/routeMatcher';
+import {
+  SavedRoute,
+  loadSavedRoutes,
+  storeSavedRoutes,
+  routeKeyFromNames,
+  whatsappUrl,
+  whatsappShareUrl,
+  clientToDriverMessage,
+  buildTripAd,
+  formatTripEstimate
+} from '../services/helpers';
+
+// سطر المسافة والمدة التقريبية على بطاقة السائق
+const DistanceLine: React.FC<{ codes: string[]; pickup: string; dest: string; isAr: boolean }> = ({
+  codes,
+  pickup,
+  dest,
+  isAr
+}) => {
+  const km = segmentDistanceKm(codes, wilayaCode(pickup), wilayaCode(dest));
+  if (km === null) return null;
+  return (
+    <p className="text-[10px] text-sky-300 font-semibold">
+      📏 {formatTripEstimate(km, isAr)} <span className="text-slate-500 font-normal">({isAr ? 'تقديري' : 'estimation'})</span>
+    </p>
+  );
+};
 
 // شارة نوع المطابقة على بطاقة السائق
 const MatchBadge: React.FC<{ kind: MatchKind; isAr: boolean }> = ({ kind, isAr }) =>
@@ -47,6 +78,7 @@ interface RayehHomeScreenProps {
   onOpenCallModal: (trip: ReturnTrip) => void;
   onOpenPremiumModal: () => void;
   onOpenVerificationModal: () => void;
+  suggestion: { category: VehicleCategory; nonce: number } | null;
 }
 
 export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
@@ -61,7 +93,8 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
   onOpenAvailableModal,
   onOpenCallModal,
   onOpenPremiumModal,
-  onOpenVerificationModal
+  onOpenVerificationModal,
+  suggestion
 }) => {
   const isAr = lang === 'ar';
 
@@ -69,6 +102,47 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
   const [pickupWilaya, setPickupWilaya] = useState<string>('وهران');
   const [destinationWilaya, setDestinationWilaya] = useState<string>('الجزائر العاصمة');
   const [filterAlongRoute, setFilterAlongRoute] = useState<boolean>(true);
+  const [savedRoutes, setSavedRoutes] = useState<SavedRoute[]>(() => loadSavedRoutes());
+
+  // تطبيق الصنف المقترح من نافذة «اقتراح العربة المناسبة» على فلتر البحث
+  useEffect(() => {
+    if (suggestion) setSelectedCategory(suggestion.category);
+  }, [suggestion]);
+
+  const currentRouteKey = routeKeyFromNames(pickupWilaya, destinationWilaya);
+  const isCurrentSaved =
+    !!currentRouteKey &&
+    savedRoutes.some(r => r.from === currentRouteKey.from && r.to === currentRouteKey.to);
+
+  const toggleSaveCurrentRoute = () => {
+    if (!currentRouteKey) return;
+    const next = isCurrentSaved
+      ? savedRoutes.filter(r => !(r.from === currentRouteKey.from && r.to === currentRouteKey.to))
+      : [currentRouteKey, ...savedRoutes].slice(0, 6);
+    setSavedRoutes(next);
+    storeSavedRoutes(next);
+  };
+
+  const removeSavedRoute = (route: SavedRoute) => {
+    const next = savedRoutes.filter(r => !(r.from === route.from && r.to === route.to));
+    setSavedRoutes(next);
+    storeSavedRoutes(next);
+  };
+
+  const applySavedRoute = (route: SavedRoute) => {
+    setPickupWilaya(wilayaName(route.from, lang));
+    setDestinationWilaya(wilayaName(route.to, lang));
+  };
+
+  const countResultsFor = (route: SavedRoute) => {
+    const f = wilayaName(route.from, lang);
+    const t = wilayaName(route.to, lang);
+    const opts = { category: 'ALL' as const, includeAlongRoute: true, lang };
+    return (
+      matchAvailableDriversDetailed(f, t, availableDrivers, opts).length +
+      matchReturnTrips(f, t, returnTrips, opts).length
+    );
+  };
 
   // مطابقة السائقين المتاحين (فارغون الآن) حسب شبكة الطرق الوطنية
   const matchOptions = {
@@ -144,6 +218,23 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
               ETA: {activeDriverTrip.estimatedArrivalTime}
             </span>
           </div>
+          <a
+            href={whatsappShareUrl(
+              buildTripAd(isAr, {
+                from: activeDriverTrip.fromWilaya,
+                to: activeDriverTrip.toWilaya,
+                vehicleName: activeDriverTrip.vehicleName,
+                eta: activeDriverTrip.estimatedArrivalTime,
+                phone: activeDriverTrip.driverPhone
+              })
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-2 rounded-xl bg-[#25D366]/15 text-[#25D366] border border-[#25D366]/40 font-bold text-[11px] flex items-center justify-center gap-1.5 active:scale-95 transition-all"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span>{isAr ? 'انشر رحلتك في مجموعات واتساب' : 'Partager votre trajet sur WhatsApp'}</span>
+          </a>
         </div>
       )}
 
@@ -198,7 +289,52 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
             <Search className="w-3.5 h-3.5 text-emerald-400" />
             <span>{isAr ? 'البحث عن ناقل عائد (شاحنة فارغة)' : 'Recherche de retour à vide'}</span>
           </span>
+          <button
+            onClick={toggleSaveCurrentRoute}
+            disabled={!currentRouteKey}
+            aria-label={isAr ? 'حفظ هذا المسار' : 'Enregistrer ce trajet'}
+            className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg border transition-all disabled:opacity-40 ${
+              isCurrentSaved
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                : 'bg-slate-900 text-slate-400 border-slate-700'
+            }`}
+          >
+            <Star className={`w-3 h-3 ${isCurrentSaved ? 'fill-amber-300' : ''}`} />
+            <span>{isCurrentSaved ? (isAr ? 'محفوظ' : 'Enregistré') : (isAr ? 'حفظ المسار' : 'Enregistrer')}</span>
+          </button>
         </div>
+
+        {savedRoutes.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+            {savedRoutes.map(r => {
+              const n = countResultsFor(r);
+              return (
+                <div
+                  key={`${r.from}-${r.to}`}
+                  className="shrink-0 flex items-center gap-1 pl-1 pr-2 py-1 rounded-full bg-slate-900 border border-slate-700 text-[10px] text-slate-200"
+                >
+                  <button onClick={() => applySavedRoute(r)} className="flex items-center gap-1.5 font-bold">
+                    <span>{wilayaName(r.from, lang)} ➜ {wilayaName(r.to, lang)}</span>
+                    <span
+                      className={`font-mono px-1.5 rounded-full ${
+                        n > 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'
+                      }`}
+                    >
+                      {n}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => removeSavedRoute(r)}
+                    aria-label={isAr ? 'حذف المسار المحفوظ' : 'Supprimer le trajet enregistré'}
+                    className="text-slate-500 hover:text-red-400"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-2">
           <div>
@@ -313,6 +449,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
                     {isAr ? 'عبر: ' : 'Via: '}{match.routeNames.slice(1, -1).join(' ← ')}
                   </p>
                 )}
+                <DistanceLine codes={match.routeCodes} pickup={pickupWilaya} dest={destinationWilaya} isAr={isAr} />
               </div>
 
               <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
@@ -321,13 +458,25 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
                   <span className="font-mono font-bold text-amber-400">{d.fixedCommissionDzd} دج</span>
                 </div>
 
-                <a
-                  href={`tel:${d.driverPhone}`}
-                  className="py-2 px-5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer"
-                >
-                  <Phone className="w-3.5 h-3.5" />
-                  <span>{isAr ? 'اتصال' : 'Appeler'}</span>
-                </a>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={whatsappUrl(d.driverPhone, clientToDriverMessage(isAr, pickupWilaya, destinationWilaya))}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="WhatsApp"
+                    className="py-2 px-3 rounded-xl bg-[#25D366]/15 text-[#25D366] border border-[#25D366]/40 font-black text-xs flex items-center gap-1 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>{isAr ? 'واتساب' : 'WhatsApp'}</span>
+                  </a>
+                  <a
+                    href={`tel:${d.driverPhone}`}
+                    className="py-2 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>{isAr ? 'اتصال' : 'Appeler'}</span>
+                  </a>
+                </div>
               </div>
             </div>
           ))}
@@ -420,6 +569,7 @@ export const RayehHomeScreen: React.FC<RayehHomeScreenProps> = ({
                       {isAr ? 'عبر: ' : 'Via: '}{match.routeNames.slice(1, -1).join(' ← ')}
                     </p>
                   )}
+                  <DistanceLine codes={match.routeCodes} pickup={pickupWilaya} dest={destinationWilaya} isAr={isAr} />
                 </div>
 
                 {trip.delayMinutes > 0 && (
