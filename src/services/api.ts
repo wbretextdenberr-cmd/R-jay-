@@ -9,7 +9,6 @@ import {
   DriverVehicle,
   AvailableDriver
 } from '../types';
-import { IMG } from '../assets';
 import { matchAvailableDrivers } from './routeMatcher';
 
 const STORAGE_KEYS = {
@@ -21,119 +20,38 @@ const STORAGE_KEYS = {
   AVAILABLE: 'rayeh_jay_available_drivers'
 };
 
-const SEED_TRIPS: ReturnTrip[] = [
-  {
-    id: 'trip_1',
-    driverId: 'drv_101',
-    driverName: 'عمي الهاشمي بلقاسم',
-    driverPhone: '0555 42 18 90',
-    driverAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80',
-    reliabilityScore: 99,
-    vehicleCategory: 'PORTE_CHAR',
-    vehicleName: 'Mercedes-Benz Actros 3340 Porte-char',
-    vehiclePhoto: IMG.portechar,
-    fromWilaya: 'ورقلة / حاسي مسعود',
-    fromCommune: 'حاسي مسعود',
-    toWilaya: 'الجزائر العاصمة',
-    toCommune: 'الرويبة',
-    routeUsed: 'الطريق الوطني رقم 1 (RN1 العابر للصحراء Trans-Saharienne)',
-    departureTime: '06:00',
-    estimatedArrivalTime: '16:30',
-    acceptAlongRoute: true,
-    delayMinutes: 0,
-    fixedCommissionDzd: 3500,
-    status: 'ACTIVE'
-  },
-  {
-    id: 'trip_2',
-    driverId: 'drv_102',
-    driverName: 'كريم مرواني',
-    driverPhone: '0661 78 33 21',
-    driverAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=256&q=80',
-    reliabilityScore: 97,
-    vehicleCategory: 'C2',
-    vehicleName: 'Scania R450 شاحنة 26 طن',
-    vehiclePhoto: IMG.freight,
-    fromWilaya: 'وهران',
-    fromCommune: 'السانية',
-    toWilaya: 'قسنطينة',
-    toCommune: 'الخروب',
-    routeUsed: 'الطريق السيار شرق-غرب (A1 Autoroute Est-Ouest)',
-    departureTime: '08:30',
-    estimatedArrivalTime: '15:15',
-    acceptAlongRoute: true,
-    delayReason: 'ازدحام طفيف بمحول الشفة بالبليدة',
-    delayMinutes: 25,
-    fixedCommissionDzd: 2000,
-    status: 'DELAYED'
-  },
-  {
-    id: 'trip_3',
-    driverId: 'drv_103',
-    driverName: 'سفيان دراجي',
-    driverPhone: '0772 15 64 88',
-    driverAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
-    reliabilityScore: 96,
-    vehicleCategory: 'B_LIGHT',
-    vehicleName: 'Renault Master 3.5T Plateau',
-    vehiclePhoto: 'https://images.unsplash.com/photo-1586191582056-a60216259020?auto=format&fit=crop&w=400&q=80',
-    fromWilaya: 'سطيف',
-    fromCommune: 'العلمة',
-    toWilaya: 'الجزائر العاصمة',
-    toCommune: 'باب الزوار',
-    routeUsed: 'الطريق السيار شرق-غرب (A1 Autoroute Est-Ouest)',
-    departureTime: '10:00',
-    estimatedArrivalTime: '13:45',
-    acceptAlongRoute: true,
-    delayMinutes: 0,
-    fixedCommissionDzd: 500,
-    status: 'ACTIVE'
-  },
-  {
-    id: 'trip_4',
-    driverId: 'drv_104',
-    driverName: 'عمر بوقرة',
-    driverPhone: '0550 99 22 41',
-    driverAvatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=256&q=80',
-    reliabilityScore: 98,
-    vehicleCategory: 'E_TRAILER',
-    vehicleName: 'Volvo FH16 Semi-Remorque 40T',
-    vehiclePhoto: IMG.freight,
-    fromWilaya: 'عنابة',
-    fromCommune: 'سيدي عمار',
-    toWilaya: 'البليدة',
-    toCommune: 'بوفاريك',
-    routeUsed: 'الطريق السيار شرق-غرب (A1 Autoroute Est-Ouest)',
-    departureTime: '05:00',
-    estimatedArrivalTime: '14:20',
-    acceptAlongRoute: true,
-    delayMinutes: 0,
-    fixedCommissionDzd: 2500,
-    status: 'ACTIVE'
-  },
-  {
-    id: 'trip_5',
-    driverId: 'drv_105',
-    driverName: 'نور الدين بوعلام',
-    driverPhone: '0663 55 11 02',
-    driverAvatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=256&q=80',
-    reliabilityScore: 95,
-    vehicleCategory: 'B_PASSENGER',
-    vehicleName: 'Toyota HiAce 9 Places Minibus',
-    vehiclePhoto: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=400&q=80',
-    fromWilaya: 'تلمسان',
-    fromCommune: 'منصورة',
-    toWilaya: 'الجزائر العاصمة',
-    toCommune: 'بئر مراد رايس',
-    routeUsed: 'الطريق السيار شرق-غرب (A1 Autoroute Est-Ouest)',
-    departureTime: '07:15',
-    estimatedArrivalTime: '13:30',
-    acceptAlongRoute: true,
-    delayMinutes: 0,
-    fixedCommissionDzd: 400,
-    status: 'ACTIVE'
-  }
-];
+// إصدار بنية البيانات المحلية. عند تغييره تُمسح بيانات النسخ السابقة (الرحلات التجريبية القديمة) مرة واحدة.
+const DATA_VERSION_KEY = 'rayeh_jay_data_version';
+const DATA_VERSION = '2';
+
+function purgeLegacyDemoData(): void {
+  try {
+    if (localStorage.getItem(DATA_VERSION_KEY) === DATA_VERSION) return;
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('rayeh_jay_')) keys.push(k);
+    }
+    keys.forEach(k => localStorage.removeItem(k));
+    localStorage.setItem(DATA_VERSION_KEY, DATA_VERSION);
+  } catch (_) {}
+}
+purgeLegacyDemoData();
+
+/** ملف توثيق فارغ لسائق جديد لم يرسل وثائقه بعد. 80 = نقطة بداية محايدة لمؤشر الموثوقية حتى تتوفر تقييمات حقيقية. */
+export const EMPTY_VERIFICATION: DriverVerification = {
+  ninNumber: '',
+  driverLicenseNumber: '',
+  licenseIssueDate: '',
+  transportPermitNumber: '',
+  idCardPhoto: '',
+  licensePhoto: '',
+  transportPermitPhoto: '',
+  vehiclePhoto: '',
+  status: 'NOT_SUBMITTED',
+  reliabilityScore: 80,
+  completedTrips: 0
+};
 
 export const api = {
   async getReturnTrips(): Promise<ReturnTrip[]> {
@@ -143,8 +61,7 @@ export const api = {
         return JSON.parse(stored);
       }
     } catch (_) {}
-    localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(SEED_TRIPS));
-    return SEED_TRIPS;
+    return [];
   },
 
   async createReturnTrip(trip: Omit<ReturnTrip, 'id' | 'status'>): Promise<ReturnTrip> {
@@ -233,25 +150,29 @@ export const api = {
       if (stored) return JSON.parse(stored);
     } catch (_) {}
 
-    return {
-      ninNumber: '119850241852401',
-      driverLicenseNumber: '08541296/16',
-      licenseIssueDate: '2020-04-12',
-      transportPermitNumber: 'RN-ALG-2024-998',
-      idCardPhoto: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=400&q=80',
-      licensePhoto: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=400&q=80',
-      transportPermitPhoto: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=400&q=80',
-      vehiclePhoto: IMG.portechar,
-      trailerPhoto: IMG.freight,
-      status: 'VERIFIED',
-      reliabilityScore: 98,
-      completedTrips: 47
-    };
+    return { ...EMPTY_VERIFICATION };
   },
 
   async saveDriverVerification(driverId: string, verif: DriverVerification): Promise<DriverVerification> {
-    localStorage.setItem(`${STORAGE_KEYS.VERIFICATION}_${driverId}`, JSON.stringify(verif));
+    try {
+      localStorage.setItem(`${STORAGE_KEYS.VERIFICATION}_${driverId}`, JSON.stringify(verif));
+    } catch (_) {
+      throw new Error('STORAGE_FULL');
+    }
     return verif;
+  },
+
+  /** حذف كل بيانات مستخدم (رحلاته وطلباته وإتاحته ووثائقه) عند حذف حسابه */
+  async deleteUserData(userId: string): Promise<void> {
+    try {
+      const trips = (await this.getReturnTrips()).filter(t => t.driverId !== userId);
+      localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(trips));
+      const calls = (await this.getCalls()).filter(c => c.clientId !== userId && c.driverId !== userId);
+      localStorage.setItem(STORAGE_KEYS.CALLS, JSON.stringify(calls));
+      const avail = (await this.getAvailableDrivers()).filter(d => d.driverId !== userId);
+      localStorage.setItem(STORAGE_KEYS.AVAILABLE, JSON.stringify(avail));
+      localStorage.removeItem(`${STORAGE_KEYS.VERIFICATION}_${userId}`);
+    } catch (_) {}
   },
 
   // ============ AVAILABLE DRIVERS (الميزة الجديدة) ============
