@@ -236,3 +236,27 @@ export function roadsOnPath(codes: string[]): string[] {
   }
   return used;
 }
+
+/**
+ * المسافة التقريبية (كم) بين ولايتين على امتداد مسار معيّن.
+ * تُحسب كمجموع المسافات المستقيمة بين مراكز الولايات المتتالية × 1.25 لتقريبها من مسافة الطريق.
+ * تعيد null إن لم تقع الولايتان على المسار بالترتيب.
+ */
+export function segmentDistanceKm(
+  codes: string[],
+  fromCode: string | null,
+  toCode: string | null
+): number | null {
+  if (!fromCode || !toCode) return null;
+  const i = codes.indexOf(fromCode);
+  const j = codes.lastIndexOf(toCode);
+  if (i === -1 || j === -1 || i >= j) return null;
+  let km = 0;
+  for (let k = i; k < j; k++) {
+    const a = byCode.get(codes[k]);
+    const b = byCode.get(codes[k + 1]);
+    if (!a || !b) return null;
+    km += haversineKm(a, b);
+  }
+  return Math.max(10, Math.round((km * 1.25) / 10) * 10);
+}
