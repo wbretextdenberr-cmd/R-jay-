@@ -3,7 +3,7 @@
 const base = import.meta.env.BASE_URL;
 
 export const IMG = {
-  portechar: `${base}images/portechar.jpg`,
-  freight: `${base}images/freight.jpg`,
-  cockpit: `${base}images/cockpit.jpg`,
+  portechar: `${base}images/portechar.webp`,
+  freight: `${base}images/freight.webp`,
+  cockpit: `${base}images/cockpit.webp`,
 } as const;
